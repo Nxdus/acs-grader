@@ -91,17 +91,18 @@ model Verification {
 }
 
 model Problem {
-  id                Int        @id @default(autoincrement())
-  slug              String     @unique
-  title             String
-  description       String
-  difficulty        Difficulty
-  constraints       String?
-  inputFormat       String?
-  outputFormat      String?
-  isPublished       Boolean    @default(true)
-  participantCount  Int      @default(0)
-  successCount      Int      @default(0)
+  id                 Int        @id @default(autoincrement())
+  slug               String     @unique
+  title              String
+  description        String
+  difficulty         Difficulty
+  constraints        String?
+  inputFormat        String?
+  outputFormat       String?
+  allowedLanguageIds Int[]
+  isPublished        Boolean    @default(true)
+  participantCount   Int        @default(0)
+  successCount       Int        @default(0)
 
   testCases   TestCase[]
   submissions Submission[]

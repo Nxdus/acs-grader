@@ -54,7 +54,13 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Account: 'Account',
-  Verification: 'Verification'
+  Verification: 'Verification',
+  Problem: 'Problem',
+  TestCase: 'TestCase',
+  Submission: 'Submission',
+  SubmissionResult: 'SubmissionResult',
+  Tag: 'Tag',
+  ProblemTag: 'ProblemTag'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -130,6 +136,81 @@ export const VerificationScalarFieldEnum = {
 } as const
 
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
+
+
+export const ProblemScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  title: 'title',
+  description: 'description',
+  difficulty: 'difficulty',
+  constraints: 'constraints',
+  inputFormat: 'inputFormat',
+  outputFormat: 'outputFormat',
+  allowedLanguageIds: 'allowedLanguageIds',
+  isPublished: 'isPublished',
+  participantCount: 'participantCount',
+  successCount: 'successCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProblemScalarFieldEnum = (typeof ProblemScalarFieldEnum)[keyof typeof ProblemScalarFieldEnum]
+
+
+export const TestCaseScalarFieldEnum = {
+  id: 'id',
+  problemId: 'problemId',
+  input: 'input',
+  output: 'output',
+  isSample: 'isSample'
+} as const
+
+export type TestCaseScalarFieldEnum = (typeof TestCaseScalarFieldEnum)[keyof typeof TestCaseScalarFieldEnum]
+
+
+export const SubmissionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  problemId: 'problemId',
+  languageId: 'languageId',
+  code: 'code',
+  status: 'status',
+  executionTime: 'executionTime',
+  memoryUsed: 'memoryUsed',
+  language: 'language',
+  createdAt: 'createdAt'
+} as const
+
+export type SubmissionScalarFieldEnum = (typeof SubmissionScalarFieldEnum)[keyof typeof SubmissionScalarFieldEnum]
+
+
+export const SubmissionResultScalarFieldEnum = {
+  id: 'id',
+  submissionId: 'submissionId',
+  testCaseId: 'testCaseId',
+  actualOutput: 'actualOutput',
+  passed: 'passed',
+  runtime: 'runtime'
+} as const
+
+export type SubmissionResultScalarFieldEnum = (typeof SubmissionResultScalarFieldEnum)[keyof typeof SubmissionResultScalarFieldEnum]
+
+
+export const TagScalarFieldEnum = {
+  id: 'id',
+  name: 'name'
+} as const
+
+export type TagScalarFieldEnum = (typeof TagScalarFieldEnum)[keyof typeof TagScalarFieldEnum]
+
+
+export const ProblemTagScalarFieldEnum = {
+  problemId: 'problemId',
+  tagId: 'tagId'
+} as const
+
+export type ProblemTagScalarFieldEnum = (typeof ProblemTagScalarFieldEnum)[keyof typeof ProblemTagScalarFieldEnum]
 
 
 export const SortOrder = {

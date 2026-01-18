@@ -59,3 +59,33 @@ export type Account = Prisma.AccountModel
  * 
  */
 export type Verification = Prisma.VerificationModel
+/**
+ * Model Problem
+ * 
+ */
+export type Problem = Prisma.ProblemModel
+/**
+ * Model TestCase
+ * 
+ */
+export type TestCase = Prisma.TestCaseModel
+/**
+ * Model Submission
+ * 
+ */
+export type Submission = Prisma.SubmissionModel
+/**
+ * Model SubmissionResult
+ * 
+ */
+export type SubmissionResult = Prisma.SubmissionResultModel
+/**
+ * Model Tag
+ * 
+ */
+export type Tag = Prisma.TagModel
+/**
+ * Model ProblemTag
+ * 
+ */
+export type ProblemTag = Prisma.ProblemTagModel

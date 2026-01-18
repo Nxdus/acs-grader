@@ -1,6 +1,6 @@
 "use client"
 
-import MonacoEditor, { Monaco, OnChange, OnMount } from "@monaco-editor/react";
+import MonacoEditor from "@monaco-editor/react";
 import type { editor as MonacoEditorType } from "monaco-editor";
 
 import {
@@ -17,17 +17,66 @@ import {
     ButtonGroup,
 } from "@/components/ui/button-group"
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-export default function TextEditor() {
+type TextEditorProps = {
+    slug: string;
+    allowedLanguageIds?: number[];
+};
 
-    const allowedLanguageIds: number[] = [];
+export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditorProps) {
+
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
+    const [code, setCode] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isRunning, setIsRunning] = useState(false);
+    const { data: session } = useSession();
+    const [submissionStatus, setSubmissionStatus] = useState<{
+        hasSubmission: boolean;
+        status?: string;
+        executionTime?: number | null;
+        memoryUsed?: number | null;
+        createdAt?: string;
+    } | null>(null);
+
+    const statusLabel = (status?: string) => {
+        switch (status) {
+            case "ACCEPTED":
+                return "Accepted";
+            case "WRONG_ANSWER":
+                return "Wrong Answer";
+            case "TIME_LIMIT_EXCEEDED":
+                return "Time Limit";
+            case "RUNTIME_ERROR":
+                return "Runtime Error";
+            case "COMPILATION_ERROR":
+                return "Compilation Error";
+            case "PENDING":
+                return "Pending";
+            default:
+                return "Unknown";
+        }
+    };
+
+    const formatSeconds = (value?: number | null) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return null;
+        return `${value.toFixed(3)}s`;
+    };
+
+    const formatMemory = (value?: number | null) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return null;
+        if (value >= 1024) return `${(value / 1024).toFixed(2)} MB`;
+        return `${value.toFixed(0)} KB`;
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -110,9 +159,9 @@ export default function TextEditor() {
         };
     }, []);
 
-    const visibleLanguages = allowedLanguageIds.length
-        ? languages.filter((item) => allowedLanguageIds.includes(item.id))
-        : languages;
+    const visibleLanguages = languages.filter((item) =>
+        allowedLanguageIds.includes(item.id),
+    );
 
     useEffect(() => {
         if (!visibleLanguages.length) {
@@ -131,34 +180,223 @@ export default function TextEditor() {
 
     const { theme } = useTheme()
 
+    const canSubmit = useMemo(() => {
+        return Boolean(
+            session?.user?.id &&
+            code.trim().length > 0 &&
+            selectedLanguage &&
+            languageId,
+        );
+    }, [code, languageId, selectedLanguage, session?.user?.id]);
+
+    const canRun = useMemo(() => {
+        return Boolean(
+            code.trim().length > 0 &&
+            selectedLanguage &&
+            languageId,
+        );
+    }, [code, languageId, selectedLanguage]);
+
+    const handleSubmit = async () => {
+        if (!session?.user?.id) {
+            toast.error("Please sign in before submitting.");
+            return;
+        }
+
+        if (!selectedLanguage || !languageId) {
+            toast.error("Please select a language.");
+            return;
+        }
+
+        if (!code.trim()) {
+            toast.error("Please enter your code.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch(`/api/tasks/${slug}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    languageId: Number(languageId),
+                    language: selectedLanguage.name,
+                    code,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMessage =
+                    typeof data?.error === "string" ? data.error : "Submission failed.";
+                toast.error(errorMessage);
+                return;
+            }
+
+            toast.success("Submitted successfully.");
+            void loadSubmissionStatus(session.user.id);
+        } catch (error) {
+            console.error(error);
+            toast.error("Unable to submit right now.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleRun = async () => {
+        if (!selectedLanguage || !languageId) {
+            toast.error("Please select a language.");
+            return;
+        }
+
+        if (!code.trim()) {
+            toast.error("Please enter your code.");
+            return;
+        }
+
+        setIsRunning(true);
+        window.dispatchEvent(new CustomEvent("testcase-run-start"));
+
+        try {
+            const response = await fetch(`/api/tasks/${slug}/run`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    languageId: Number(languageId),
+                    code,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMessage =
+                    typeof data?.error === "string" ? data.error : "Run failed.";
+                toast.error(errorMessage);
+                return;
+            }
+
+            if (Array.isArray(data?.results)) {
+                window.dispatchEvent(
+                    new CustomEvent("testcase-run-complete", {
+                        detail: { results: data.results },
+                    }),
+                );
+                toast.success("Testcases checked.");
+            } else {
+                toast.error("No testcase results received.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Unable to run right now.");
+        } finally {
+            setIsRunning(false);
+        }
+    };
+
+    const loadSubmissionStatus = async (userId: string) => {
+        try {
+            const response = await fetch(
+                `/api/tasks/${slug}/status?userId=${encodeURIComponent(userId)}`,
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                setSubmissionStatus(null);
+                return;
+            }
+            setSubmissionStatus(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        if (!session?.user?.id) {
+            setSubmissionStatus(null);
+            return;
+        }
+        void loadSubmissionStatus(session.user.id);
+    }, [session?.user?.id, slug]);
+
     return (
         <div className={`w-full h-full flex flex-col items-end gap-2 bg-[#fffffe] dark:bg-[#1e1e1e] p-2`}>
-            <div className="inline-flex gap-2">
-                <ButtonGroup>
-                    <Button variant={"secondary"} size={"icon"}> <Play /></Button>
-                    <Button variant={"default"}>Submit</Button>
-                </ButtonGroup>
-                <Select value={languageId} onValueChange={setLanguageId}>
-                    <SelectTrigger className="w-48" >
-                        <SelectValue placeholder="Select a languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectLabel>Languages</SelectLabel>
-                            {visibleLanguages.map((item) => (
-                                <SelectItem key={item.id} value={String(item.id)}>
-                                    {item.name}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
+            <div className="w-full flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
+                    {session?.user?.id ? (
+                        submissionStatus?.hasSubmission ? (
+                            <>
+                                <Badge
+                                    className={cn(
+                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                        submissionStatus.status === "ACCEPTED"
+                                            ? "bg-emerald-500/10 text-emerald-600"
+                                            : submissionStatus.status === "PENDING"
+                                                ? "bg-amber-500/10 text-amber-600"
+                                                : "bg-rose-500/10 text-rose-600",
+                                    )}
+                                >
+                                    {statusLabel(submissionStatus.status)}
+                                </Badge>
+                                {formatSeconds(submissionStatus.executionTime) ? (
+                                    <Badge variant="secondary">
+                                        Time: {formatSeconds(submissionStatus.executionTime)}
+                                    </Badge>
+                                ) : null}
+                                {formatMemory(submissionStatus.memoryUsed) ? (
+                                    <Badge variant="secondary">
+                                        Memory: {formatMemory(submissionStatus.memoryUsed)}
+                                    </Badge>
+                                ) : null}
+                            </>
+                        ) : (
+                            <Badge variant="outline">No submission yet</Badge>
+                        )
+                    ) : null}
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <ButtonGroup>
+                        <Button
+                            variant={"secondary"}
+                            size={"icon"}
+                            onClick={handleRun}
+                            disabled={!canRun || isRunning}
+                        >
+                            <Play />
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            onClick={handleSubmit}
+                            disabled={!canSubmit || isSubmitting}
+                        >
+                            {isSubmitting ? "Submitting..." : "Submit"}
+                        </Button>
+                    </ButtonGroup>
+                    <Select value={languageId} onValueChange={setLanguageId}>
+                        <SelectTrigger className="w-full sm:w-48" >
+                            <SelectValue placeholder="Select a languages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectLabel>Languages</SelectLabel>
+                                {visibleLanguages.map((item) => (
+                                    <SelectItem key={item.id} value={String(item.id)}>
+                                        {item.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <MonacoEditor
                 theme={theme === "dark" ? "vs-dark" : "vs-light"}
                 language={editorLanguage}
                 loading={<Spinner />}
+                onChange={(value) => setCode(value ?? "")}
                 options={{
                     acceptSuggestionOnCommitCharacter: true,
                     acceptSuggestionOnEnter: "on",

@@ -50,7 +50,7 @@ const markdownComponents: Components = {
                 className={cn(
                     isBlock
                         ? "font-mono text-xs"
-                        : "rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground",
+                        : "bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground",
                     className,
                 )}
                 {...props}
@@ -60,7 +60,7 @@ const markdownComponents: Components = {
     pre: ({ className, ...props }) => (
         <pre
             className={cn(
-                "mt-3 overflow-x-auto rounded-md bg-muted p-3 text-xs text-foreground",
+                "mt-3 overflow-x-auto bg-muted p-3 text-xs text-foreground",
                 className,
             )}
             {...props}
