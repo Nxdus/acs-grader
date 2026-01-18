@@ -1,5 +1,9 @@
-import { ComponentExample } from "@/components/component-example";
+import { SectionNavBar } from "@/components/sidebar/section-navbar"
 
 export default function Page() {
-return <ComponentExample />;
+  return (
+    <main className="w-full h-full flex flex-col rounded-xl bg-background">
+      <SectionNavBar items={[{ label: "Home" }]} />
+    </main>
+  )
 }

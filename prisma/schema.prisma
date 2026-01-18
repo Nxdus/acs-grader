@@ -5,19 +5,41 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILATION_ERROR
 }
 
 model User {
-  id            String    @id
+  id            String       @id
   name          String
   email         String
   emailVerified Boolean
   image         String?
+  role          Role         @default(USER)
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  submissions   Submission[]
 
   @@unique([email])
   @@map("user")
@@ -66,4 +88,94 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+model Problem {
+  id                Int        @id @default(autoincrement())
+  slug              String     @unique
+  title             String
+  description       String
+  difficulty        Difficulty
+  constraints       String?
+  inputFormat       String?
+  outputFormat      String?
+  isPublished       Boolean    @default(true)
+  participantCount  Int      @default(0)
+  successCount      Int      @default(0)
+
+  testCases   TestCase[]
+  submissions Submission[]
+  tags        ProblemTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("problem")
+}
+
+model TestCase {
+  id        Int     @id @default(autoincrement())
+  problemId Int
+  input     String
+  output    String
+  isSample  Boolean @default(false)
+
+  problem Problem            @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  results SubmissionResult[]
+
+  @@map("test_case")
+}
+
+model Submission {
+  id         Int    @id @default(autoincrement())
+  userId     String
+  problemId  Int
+  languageId Int
+
+  code          String
+  status        SubmissionStatus @default(PENDING)
+  executionTime Float?
+  memoryUsed    Float?
+
+  user     User               @relation(fields: [userId], references: [id])
+  problem  Problem            @relation(fields: [problemId], references: [id])
+  language String
+  results  SubmissionResult[]
+
+  createdAt DateTime @default(now())
+
+  @@map("submission")
+}
+
+model SubmissionResult {
+  id           Int     @id @default(autoincrement())
+  submissionId Int
+  testCaseId   Int
+  actualOutput String?
+  passed       Boolean
+  runtime      Float?
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase   TestCase   @relation(fields: [testCaseId], references: [id])
+
+  @@map("submission_result")
+}
+
+model Tag {
+  id       Int          @id @default(autoincrement())
+  name     String       @unique
+  problems ProblemTag[]
+
+  @@map("tag")
+}
+
+model ProblemTag {
+  problemId Int
+  tagId     Int
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, tagId])
+  @@map("problem_tag")
 }
