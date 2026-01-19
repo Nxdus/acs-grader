@@ -40,6 +40,8 @@ model User {
   emailVerified Boolean
   image         String?
   role          Role         @default(USER)
+  score         Int          @default(0)
+  attended      Int          @default(0)
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]
