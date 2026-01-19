@@ -60,6 +60,16 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
                 return "Runtime Error";
             case "COMPILATION_ERROR":
                 return "Compilation Error";
+            case "INTERNAL_ERROR":
+                return "Internal Error";
+            case "EXEC_FORMAT_ERROR":
+                return "Exec Format Error";
+            case "MEMORY_LIMIT_EXCEEDED":
+                return "Memory Limit";
+            case "OUTPUT_LIMIT_EXCEEDED":
+                return "Output Limit";
+            case "STORAGE_LIMIT_EXCEEDED":
+                return "Storage Limit";
             case "PENDING":
                 return "Pending";
             default:

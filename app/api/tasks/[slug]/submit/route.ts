@@ -44,6 +44,9 @@ const normalizeJudgeBaseUrl = (value: string) => {
 
 const mapJudge0Status = (statusId: number) => {
     switch (statusId) {
+        case 1:
+        case 2:
+            return "PENDING" as const;
         case 3:
             return "ACCEPTED" as const;
         case 4:
@@ -52,17 +55,37 @@ const mapJudge0Status = (statusId: number) => {
             return "TIME_LIMIT_EXCEEDED" as const;
         case 6:
             return "COMPILATION_ERROR" as const;
-        case 14:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
             return "RUNTIME_ERROR" as const;
+        case 13:
+            return "INTERNAL_ERROR" as const;
+        case 14:
+            return "EXEC_FORMAT_ERROR" as const;
+        case 15:
+            return "MEMORY_LIMIT_EXCEEDED" as const;
+        case 16:
+            return "OUTPUT_LIMIT_EXCEEDED" as const;
+        case 17:
+            return "STORAGE_LIMIT_EXCEEDED" as const;
         default:
             return "PENDING" as const;
     }
 };
 
 const pickFinalStatus = (statuses: Array<ReturnType<typeof mapJudge0Status>>) => {
+    if (statuses.includes("INTERNAL_ERROR")) return "INTERNAL_ERROR";
     if (statuses.includes("COMPILATION_ERROR")) return "COMPILATION_ERROR";
+    if (statuses.includes("EXEC_FORMAT_ERROR")) return "EXEC_FORMAT_ERROR";
+    if (statuses.includes("MEMORY_LIMIT_EXCEEDED")) return "MEMORY_LIMIT_EXCEEDED";
     if (statuses.includes("RUNTIME_ERROR")) return "RUNTIME_ERROR";
     if (statuses.includes("TIME_LIMIT_EXCEEDED")) return "TIME_LIMIT_EXCEEDED";
+    if (statuses.includes("OUTPUT_LIMIT_EXCEEDED")) return "OUTPUT_LIMIT_EXCEEDED";
+    if (statuses.includes("STORAGE_LIMIT_EXCEEDED")) return "STORAGE_LIMIT_EXCEEDED";
     if (statuses.includes("WRONG_ANSWER")) return "WRONG_ANSWER";
     if (statuses.every((status) => status === "ACCEPTED")) return "ACCEPTED";
     return "PENDING";

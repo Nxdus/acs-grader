@@ -27,8 +27,38 @@ interface TestcaseTableProps {
 
 export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
     const [statusById, setStatusById] = useState<
-        Record<number, "success" | "fail">
+        Record<number, { verdict: "success" | "fail"; judgeStatus?: string }>
     >({})
+
+    const statusLabel = (status?: string) => {
+        console.log(status)
+        switch (status) {
+            case "ACCEPTED":
+                return "Accepted"
+            case "WRONG_ANSWER":
+                return "Wrong Answer"
+            case "TIME_LIMIT_EXCEEDED":
+                return "Time Limit"
+            case "RUNTIME_ERROR":
+                return "Runtime Error"
+            case "COMPILATION_ERROR":
+                return "Compilation Error"
+            case "INTERNAL_ERROR":
+                return "Internal Error"
+            case "EXEC_FORMAT_ERROR":
+                return "Exec Format Error"
+            case "MEMORY_LIMIT_EXCEEDED":
+                return "Memory Limit"
+            case "OUTPUT_LIMIT_EXCEEDED":
+                return "Output Limit"
+            case "STORAGE_LIMIT_EXCEEDED":
+                return "Storage Limit"
+            case "PENDING":
+                return "Pending"
+            default:
+                return "Unknown"
+        }
+    }
 
     useEffect(() => {
         const handleStart = () => {
@@ -39,16 +69,26 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
             event: Event,
         ) => {
             const detail = (event as CustomEvent<{
-                results?: Array<{ testCaseId: number; passed: boolean }>
+                results?: Array<{
+                    testCaseId: number
+                    passed: boolean
+                    judgeStatus?: string
+                }>
             }>).detail
 
             if (!detail?.results) {
                 return
             }
 
-            const next: Record<number, "success" | "fail"> = {}
+            const next: Record<
+                number,
+                { verdict: "success" | "fail"; judgeStatus?: string }
+            > = {}
             for (const result of detail.results) {
-                next[result.testCaseId] = result.passed ? "success" : "fail"
+                next[result.testCaseId] = {
+                    verdict: result.passed ? "success" : "fail",
+                    judgeStatus: result.judgeStatus,
+                }
             }
             setStatusById(next)
         }
@@ -110,27 +150,26 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
                             <TableCell className="align-top">
                                 <div
                                     className={cn(
-                                        "flex items-center gap-2",
+                                        "flex items-start gap-2",
                                         statusById[row.id] ? "justify-between" : "justify-start",
                                     )}
                                 >
+                                    <div className="whitespace-pre-wrap font-mono text-xs">
+                                        {row.output}
+                                    </div>
                                     {statusById[row.id] ? (
                                         <Badge
                                             className={cn(
                                                 "text-[11px] font-semibold uppercase tracking-wide",
-                                                statusById[row.id] === "success"
+                                                statusById[row.id].verdict === "success"
                                                     ? "bg-emerald-500/10 text-emerald-600"
                                                     : "bg-rose-500/10 text-rose-600",
                                             )}
                                         >
-                                            {statusById[row.id]}
+                                            {statusLabel(statusById[row.id].judgeStatus)}
                                         </Badge>
                                     ) : null}
-                                    <div className="whitespace-pre-wrap font-mono text-xs">
-                                        {row.output}
-                                    </div>
                                 </div>
-
                             </TableCell>
                         </TableRow>
                     ))}
