@@ -54,22 +54,21 @@ const mapJudge0Status = (statusId: number) => {
         case 6:
             return "COMPILATION_ERROR" as const;
         case 7:
+            return "RUNTIME_ERROR" as const;
         case 8:
+            return "RUNTIME_ERROR" as const;
         case 9:
+            return "RUNTIME_ERROR" as const;
         case 10:
+            return "RUNTIME_ERROR" as const;
         case 11:
+            return "RUNTIME_ERROR" as const;
         case 12:
             return "RUNTIME_ERROR" as const;
         case 13:
             return "INTERNAL_ERROR" as const;
         case 14:
             return "EXEC_FORMAT_ERROR" as const;
-        case 15:
-            return "MEMORY_LIMIT_EXCEEDED" as const;
-        case 16:
-            return "OUTPUT_LIMIT_EXCEEDED" as const;
-        case 17:
-            return "STORAGE_LIMIT_EXCEEDED" as const;
         default:
             return "PENDING" as const;
     }
