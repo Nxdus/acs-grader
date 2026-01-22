@@ -23,7 +23,7 @@ const mockData: User[] = [
 
 export default function page() {
   const [rankings, setRankings] = useState<User[]>(mockData);
-  const [totalParticipants, setTotalParticipants] = useState(0);
+  const [totalParticipants, setTotalParticipants] = useState(rankings.length);
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
@@ -31,7 +31,7 @@ export default function page() {
 
       <div className="container my-7 mx-auto px-4">
         <div>
-          <h1 className="text-xl">Ranking</h1>
+          <h1 className="text-xl font-bold">Ranking</h1>
           <span className="text-muted-foreground text-sm">
             Total Participants: {totalParticipants}
           </span>
