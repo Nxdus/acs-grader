@@ -224,6 +224,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
             return;
         }
 
+        window.dispatchEvent(new CustomEvent("testcase-run-start"));
         setIsSubmitting(true);
 
         try {
@@ -381,6 +382,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
                             variant={"default"}
                             onClick={handleSubmit}
                             disabled={!canSubmit || isSubmitting}
+                            className="min-w-16"
                         >
                             {isSubmitting ? <Spinner /> : "Submit"}
                         </Button>
