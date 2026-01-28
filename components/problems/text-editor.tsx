@@ -16,22 +16,29 @@ import {
     ButtonGroup,
 } from "@/components/ui/button-group"
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
+import { Check, Play, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { stat } from "fs";
+
+type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 
 type TextEditorProps = {
     slug: string;
     allowedLanguageIds?: number[];
+    initialCode?: string;
 };
 
-export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditorProps) {
+const AUTOSAVE_DELAY = 1500; // ms
+const STORAGE_KEY = "autosave:two-sum";
+
+export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
@@ -46,6 +53,9 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
         memoryUsed?: number | null;
         createdAt?: string;
     } | null>(null);
+
+    const saveTimer = useRef<NodeJS.Timeout | null>(null);
+    const [status, setStatus] = useState<SaveStatus>("idle");
 
     const statusLabel = (status?: string) => {
         switch (status) {
@@ -74,6 +84,41 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
             default:
                 return "Unknown";
         }
+    };
+
+    useEffect(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) setCode(saved);
+    }, []);
+
+    const autosave = useCallback(async (value: string) => {
+        try {
+            setStatus("saving");
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            localStorage.setItem(STORAGE_KEY, value);
+
+            setStatus("saved");
+            setTimeout(() => setStatus("idle"), 1000);
+        } catch (err) {
+            console.error(err);
+            setStatus("error");
+        }
+    }, [languageId]);
+
+    const handleChange = (value?: string) => {
+        const newCode = value ?? "";
+        setCode(newCode);
+
+        // clear timer เดิม
+        if (saveTimer.current) {
+            clearTimeout(saveTimer.current);
+        }
+
+        // debounce autosave
+        saveTimer.current = setTimeout(() => {
+            autosave(newCode);
+        }, AUTOSAVE_DELAY);
     };
 
     const formatSeconds = (value?: number | null) => {
@@ -359,12 +404,34 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
                                 ) : null}
                                 {formatMemory(submissionStatus.memoryUsed) ? (
                                     <Badge variant="secondary">
-                                        Memory: {formatMemory(submissionStatus.memoryUsed)}
+                                        Memory Usage: {formatMemory(submissionStatus.memoryUsed)}
                                     </Badge>
                                 ) : null}
                             </>
                         ) : (
-                            <Badge variant="outline">No submission yet</Badge>
+                            <div className="flex gap-4">
+                                <Badge variant="outline">No submission yet</Badge>
+                                <div className="flex justify-center items-center text-xs">
+                                    {status === "saving" && 
+                                        <div className="flex items-center">
+                                            <Spinner className="mr-1" />
+                                            Saving...
+                                        </div>
+                                    }
+                                    {status === "saved" &&
+                                        <div className="flex items-center">
+                                            <Check size={12} className="mr-1 text-green-500" />
+                                            Saved
+                                        </div>
+                                    }
+                                    {status === "error" && 
+                                        <div className="flex items-center">
+                                            <X size={12} className="mr-1" />
+                                            Save failed
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         )
                     ) : null}
                 </div>
@@ -404,12 +471,13 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
                     </Select>
                 </div>
             </div>
-
+            
             <MonacoEditor
                 theme={theme === "dark" ? "vs-dark" : "vs-light"}
                 language={editorLanguage}
                 loading={<Spinner />}
-                onChange={(value) => setCode(value ?? "")}
+                value={code}
+                onChange={handleChange}
                 options={{
                     acceptSuggestionOnCommitCharacter: true,
                     acceptSuggestionOnEnter: "on",

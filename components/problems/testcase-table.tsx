@@ -11,8 +11,9 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Copy } from "lucide-react"
+import { Copy, ListCheck, Terminal } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 
 export interface TestcaseRow {
     id: number
@@ -27,7 +28,10 @@ interface TestcaseTableProps {
 
 export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
     const [statusById, setStatusById] = useState<
-        Record<number, { verdict: "success" | "fail"; judgeStatus?: string }>
+        Record<
+            number,
+            { verdict: "success" | "fail"; judgeStatus?: string; output?: string | null }
+        >
     >({})
 
     const statusLabel = (status?: string) => {
@@ -65,14 +69,13 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
             setStatusById({})
         }
 
-        const handleComplete = (
-            event: Event,
-        ) => {
+        const handleComplete = (event: Event) => {
             const detail = (event as CustomEvent<{
                 results?: Array<{
                     testCaseId: number
                     passed: boolean
                     judgeStatus?: string
+                    actualOutput?: string | null
                 }>
             }>).detail
 
@@ -80,14 +83,12 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
                 return
             }
 
-            const next: Record<
-                number,
-                { verdict: "success" | "fail"; judgeStatus?: string }
-            > = {}
+            const next: Record<number, { verdict: "success" | "fail"; judgeStatus?: string; output?: string | null }> = {}
             for (const result of detail.results) {
                 next[result.testCaseId] = {
                     verdict: result.passed ? "success" : "fail",
                     judgeStatus: result.judgeStatus,
+                    output: result.actualOutput ?? null,
                 }
             }
             setStatusById(next)
@@ -121,60 +122,109 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
 
     return (
         <div className={cn("h-full w-full overflow-auto bg-background p-6", className)}>
-            <div className="mb-3 text-sm font-medium">Testcases</div>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-1/2">Input</TableHead>
-                        <TableHead className="w-1/2">Output</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {rows.map((row) => (
-                        <TableRow key={row.id}>
-                            <TableCell className="align-middle">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="whitespace-pre-wrap font-mono text-xs">
-                                        {row.input}
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        onClick={() => handleCopy(row.input)}
-                                    >
-                                        <Copy />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                            <TableCell className="align-top">
-                                <div
-                                    className={cn(
-                                        "flex items-start gap-2",
-                                        statusById[row.id] ? "justify-between" : "justify-start",
-                                    )}
-                                >
-                                    <div className="whitespace-pre-wrap font-mono text-xs">
-                                        {row.output}
-                                    </div>
-                                    {statusById[row.id] ? (
-                                        <Badge
+            <Tabs className="gap-0" defaultValue="testcase">
+                <TabsList className="p-0 items-end bg-transparent">
+                    <TabsTrigger className="px-4 text-sm font-medium border-0 bg-muted/50 data-active:bg-muted dark:data-active:bg-muted" value="testcase">
+                        <ListCheck className="text-emerald-600" />
+                        Testcase
+                    </TabsTrigger>
+                    <TabsTrigger className="px-4 text-sm font-medium border-0 bg-muted/50 data-active:bg-muted dark:data-active:bg-muted" value="testresult">
+                        <Terminal className="text-emerald-600" />
+                        Test Result
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="testcase" className="py-3 px-2 bg-muted">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-1/2">Input</TableHead>
+                                <TableHead className="w-1/2">Output</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.map((row) => (
+                                <TableRow key={row.id}>
+                                    <TableCell className="align-middle">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="whitespace-pre-wrap font-mono text-xs">
+                                                {row.input}
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="icon-xs"
+                                                variant="ghost"
+                                                onClick={() => handleCopy(row.input)}
+                                            >
+                                                <Copy />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="align-top">
+                                        <div
                                             className={cn(
-                                                "text-[11px] font-semibold uppercase tracking-wide",
-                                                statusById[row.id].verdict === "success"
-                                                    ? "bg-emerald-500/10 text-emerald-600"
-                                                    : "bg-rose-500/10 text-rose-600",
+                                                "flex items-start gap-2",
+                                                statusById[row.id] ? "justify-between" : "justify-start",
                                             )}
                                         >
-                                            {statusLabel(statusById[row.id].judgeStatus)}
-                                        </Badge>
-                                    ) : null}
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                                            <div className="whitespace-pre-wrap font-mono text-xs">
+                                                {row.output}
+                                            </div>
+                                            {statusById[row.id] ? (
+                                                <Badge
+                                                    className={cn(
+                                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                                        statusById[row.id].verdict === "success"
+                                                            ? "bg-emerald-500/10 text-emerald-600"
+                                                            : "bg-rose-500/10 text-rose-600",
+                                                    )}
+                                                >
+                                                    {statusLabel(statusById[row.id].judgeStatus)}
+                                                </Badge>
+                                            ) : null}
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TabsContent>
+                <TabsContent value="testresult" className="bg-muted">
+                    <div className="p-4 font-mono text-xs">
+                        {Object.keys(statusById).length === 0 ? (
+                            <div>No results yet.</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {rows.map((row) => {
+                                    const status = statusById[row.id]
+                                    if (!status) return null
+                                    return (
+                                        <div key={row.id}>
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <span className="text-muted-foreground">
+                                                    $ testcase #{row.id}
+                                                </span>
+                                                <Badge
+                                                    className={cn(
+                                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                                        status.verdict === "success"
+                                                            ? "bg-emerald-500/10 text-emerald-600"
+                                                            : "bg-rose-500/10 text-rose-600",
+                                                    )}
+                                                >
+                                                    {statusLabel(status.judgeStatus)}
+                                                </Badge>
+                                            </div>
+                                            <div className="whitespace-pre-wrap wrap-break-words">
+                                                {status.output || "(no output)"}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
