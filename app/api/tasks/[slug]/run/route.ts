@@ -14,10 +14,10 @@ const isNonEmptyString = (value: unknown): value is string =>
     typeof value === "string" && value.trim().length > 0;
 
 const shouldBase64Encode = (value: string) => {
-    for (let index = 0; index < value.length; index += 1) {
-        const code = value.charCodeAt(index);
-        if (code === 9 || code === 10 || code === 13) continue;
-        if (code < 32 || code === 127 || code > 126) return true;
+    for (let i = 0; i < value.length; i++) {
+        const c = value.charCodeAt(i);
+        if (c === 9 || c === 10 || c === 13) continue;
+        if (c < 32 || c === 127 || c > 126) return true;
     }
     return false;
 };
@@ -54,15 +54,10 @@ const mapJudge0Status = (statusId: number) => {
         case 6:
             return "COMPILATION_ERROR" as const;
         case 7:
-            return "RUNTIME_ERROR" as const;
         case 8:
-            return "RUNTIME_ERROR" as const;
         case 9:
-            return "RUNTIME_ERROR" as const;
         case 10:
-            return "RUNTIME_ERROR" as const;
         case 11:
-            return "RUNTIME_ERROR" as const;
         case 12:
             return "RUNTIME_ERROR" as const;
         case 13:
@@ -79,30 +74,21 @@ export async function POST(request: Request, { params }: RouteContext) {
     const slug = resolvedParams.slug?.trim();
 
     if (!slug) {
-        return NextResponse.json(
-            { error: "Slug is required." },
-            { status: 400 },
-        );
+        return NextResponse.json({ error: "Slug is required." }, { status: 400 });
     }
 
     let payload: RunPayload;
     try {
         payload = await request.json();
     } catch {
-        return NextResponse.json(
-            { error: "Invalid JSON body." },
-            { status: 400 },
-        );
+        return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
     const code = isNonEmptyString(payload.code) ? payload.code.trim() : "";
     const languageId = Number(payload.languageId);
 
     if (!code) {
-        return NextResponse.json(
-            { error: "Code is required." },
-            { status: 400 },
-        );
+        return NextResponse.json({ error: "Code is required." }, { status: 400 });
     }
 
     if (!Number.isInteger(languageId) || languageId <= 0) {
@@ -118,10 +104,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     });
 
     if (!problem || !problem.isPublished) {
-        return NextResponse.json(
-            { error: "Task not found." },
-            { status: 404 },
-        );
+        return NextResponse.json({ error: "Task not found." }, { status: 404 });
     }
 
     const allowedLanguageIds = problem.allowedLanguageIds ?? [];
@@ -135,11 +118,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const testCases = await prisma.testCase.findMany({
         where: { problemId: problem.id, isSample: true },
         orderBy: { id: "asc" },
-        select: {
-            id: true,
-            input: true,
-            output: true,
-        },
+        select: { id: true, input: true, output: true },
     });
 
     if (testCases.length === 0) {
@@ -161,6 +140,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     const judgeApiToken = process.env.JUDGE0_API_KEY?.trim();
+
     const results: Array<{
         testCaseId: number;
         actualOutput: string | null;
@@ -174,9 +154,10 @@ export async function POST(request: Request, { params }: RouteContext) {
                 shouldBase64Encode(code) ||
                 shouldBase64Encode(testCase.input) ||
                 shouldBase64Encode(testCase.output);
+
             const url = new URL("/submissions/", judgeBaseUrl);
             url.searchParams.set("base64_encoded", useBase64 ? "true" : "false");
-            url.searchParams.set("wait", "true");
+            url.searchParams.set("wait", "true"); // 👈 บังคับรอจนเสร็จ
 
             const response = await fetch(url.toString(), {
                 method: "POST",

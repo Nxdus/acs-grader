@@ -187,7 +187,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         );
     }
 
-    const waitForResult = process.env.JUDGE0_WAIT !== "false";
     const judgeApiToken = process.env.JUDGE0_API_KEY?.trim();
     const submissionResults: {
         testCaseId: number;
@@ -206,7 +205,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                 shouldBase64Encode(testCase.output);
             const url = new URL("/submissions/", judgeBaseUrl);
             url.searchParams.set("base64_encoded", useBase64 ? "true" : "false");
-            url.searchParams.set("wait", waitForResult ? "true" : "false");
+            url.searchParams.set("wait", "true");
 
             const response = await fetch(url.toString(), {
                 method: "POST",
@@ -258,18 +257,6 @@ export async function POST(request: Request, { params }: RouteContext) {
                 result.compile_output ??
                 result.stderr ??
                 null;
-
-            if (!waitForResult && result.token) {
-                submissionResults.push({
-                    testCaseId: testCase.id,
-                    actualOutput: null,
-                    passed: false,
-                    runtime: null,
-                    judgeStatus: "PENDING",
-                    memory: null,
-                });
-                continue;
-            }
 
             submissionResults.push({
                 testCaseId: testCase.id,
