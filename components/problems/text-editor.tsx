@@ -25,7 +25,6 @@ import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { stat } from "fs";
 
 type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 
@@ -36,13 +35,39 @@ type TextEditorProps = {
 };
 
 const AUTOSAVE_DELAY = 1500; // ms
-const STORAGE_KEY = "autosave:two-sum";
+const STORAGE_KEY = "autosave"; // Single key for all autosaved code
+
+const getLanguageTemplate = (languageId: number): string => {
+
+    if (languageId === 54) {
+        return `#include <iostream>
+using namespace std;
+
+int main() {
+    // Write your code here
+    
+    return 0;
+}`;
+    }
+
+    if (languageId === 50) {
+        return `#include <stdio.h>
+
+int main() {
+    // Write your code here
+    
+    return 0;
+}`;
+    }
+
+    return "";
+};
 
 export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
-    const [code, setCode] = useState("");
+    const [code, setCode] = useState(initialCode);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
     const { data: session } = useSession();
@@ -87,16 +112,32 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
     };
 
     useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) setCode(saved);
-    }, []);
+        // Set default language if allowedLanguageIds includes 50
+        if (allowedLanguageIds.includes(50)) {
+            setLanguageId("50");
+        }
+    }, [allowedLanguageIds]);
 
     const autosave = useCallback(async (value: string) => {
         try {
             setStatus("saving");
 
             await new Promise((resolve) => setTimeout(resolve, 500));
-            localStorage.setItem(STORAGE_KEY, value);
+            
+            // Load existing data or create new object
+            const existing = localStorage.getItem(STORAGE_KEY);
+            const allData = existing ? JSON.parse(existing) : {};
+            
+            // Initialize slug object if not exists
+            if (!allData[slug]) {
+                allData[slug] = {};
+            }
+            
+            // Update code for current language
+            allData[slug][languageId] = value;
+            
+            // Save back to localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
 
             setStatus("saved");
             setTimeout(() => setStatus("idle"), 1000);
@@ -104,8 +145,8 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
             console.error(err);
             setStatus("error");
         }
-    }, [languageId]);
-
+    }, [languageId, slug]);
+    
     const handleChange = (value?: string) => {
         const newCode = value ?? "";
         setCode(newCode);
@@ -227,9 +268,30 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
 
         const isAllowed = visibleLanguages.some((item) => String(item.id) === languageId);
         if (!isAllowed) {
+            // ถ้า languageId ปัจจุบันไม่อยู่ใน allowed languages ให้เลือก language แรก
             setLanguageId(String(visibleLanguages[0].id));
+            return;
         }
-    }, [languageId, visibleLanguages]);
+
+        try {
+            const existing = localStorage.getItem(STORAGE_KEY);
+            if (existing) {
+                const allData = JSON.parse(existing);
+                if (allData[slug] && allData[slug][languageId]) {
+                    setCode(allData[slug][languageId]);
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load saved code:", err);
+        }
+
+        // Load template สำหรับภาษาที่เลือก
+        const template = getLanguageTemplate(Number(languageId));
+        if (template) {
+            setCode(template);
+        }
+    }, [languageId, languages, allowedLanguageIds]);
 
     const selectedLanguage = visibleLanguages.find((item) => String(item.id) === languageId);
     const editorLanguage = selectedLanguage?.monacoId ?? "plaintext";
@@ -412,7 +474,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                             <div className="flex gap-4">
                                 <Badge variant="outline">No submission yet</Badge>
                                 <div className="flex justify-center items-center text-xs">
-                                    {status === "saving" && 
+                                    {status === "saving" &&
                                         <div className="flex items-center">
                                             <Spinner className="mr-1" />
                                             Saving...
@@ -424,7 +486,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                                             Saved
                                         </div>
                                     }
-                                    {status === "error" && 
+                                    {status === "error" &&
                                         <div className="flex items-center">
                                             <X size={12} className="mr-1" />
                                             Save failed
@@ -471,8 +533,9 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                     </Select>
                 </div>
             </div>
-            
+
             <MonacoEditor
+                key={languageId}
                 theme={theme === "dark" ? "vs-dark" : "vs-light"}
                 language={editorLanguage}
                 loading={<Spinner />}
