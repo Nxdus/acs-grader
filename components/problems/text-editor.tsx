@@ -142,7 +142,9 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
 
         const loadLanguages = async () => {
             try {
-                const response = await fetch("http://localhost:2358/languages");
+                const response = await fetch("https://judge.nxdus.space/languages", {
+                    headers: { "X-Judge0-Token": "paitongacs23kodlor" },
+                });
                 if (!response.ok) {
                     throw new Error(`Failed to load languages: ${response.status}`);
                 }
