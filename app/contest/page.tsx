@@ -146,9 +146,9 @@ export default function Page() {
           {contests.map((contest) => (
             <Card
               key={contest.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow border-0 bg-linear-to-br from-background to-muted p-0"
+              className="overflow-hidden hover:shadow-lg transition-shadow border-0 p-0"
             >
-              <div className="h-40 bg-linear-to-r from-primary/20 to-primary/10 flex items-center justify-center relative overflow-hidden">
+              <div className="h-40 bg-accent flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
                 <div className="text-center">
                   {contest.iamgeUrl ? (
@@ -167,7 +167,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="p-5">
+              <div className="flex flex-1 flex-col justify-between p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-foreground mb-1">
@@ -182,20 +182,22 @@ export default function Page() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 py-2 border-t border-border/50">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{contest.participantCount || 0} participants</span>
+                <div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 py-2 border-t border-border/50">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{contest.participantCount || 0} participants</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{contest.createdAt}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{contest.createdAt}</span>
-                  </div>
-                </div>
 
-                <Button className="w-full" variant="default">
-                  {contest.status === "ended" ? "View Results" : "Join Contest"}
-                </Button>
+                  <Button className="w-full" variant="default">
+                    {contest.status === "ended" ? "View Results" : "Join Contest"}
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
