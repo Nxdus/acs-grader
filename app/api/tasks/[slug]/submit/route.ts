@@ -212,6 +212,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "X-Judge0-Token": "paitongacs23kodlor",
                     ...(judgeApiToken
                         ? { "X-Auth-Token": judgeApiToken }
                         : {}),
