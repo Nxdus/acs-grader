@@ -1,23 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-  House,
-  Grip,
-  Trophy,
-  ChartNoAxesColumn,
-  Info,
-} from "lucide-react"
+import { ChartNoAxesColumn, Grip, House, Info, Trophy } from "lucide-react"
 
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavUser, NavUserSkeleton } from "@/components/sidebar/nav-user"

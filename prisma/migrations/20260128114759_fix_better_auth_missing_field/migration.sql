@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "user" ADD COLUMN     "attended" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "score" INTEGER NOT NULL DEFAULT 0;

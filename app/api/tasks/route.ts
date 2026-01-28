@@ -58,13 +58,13 @@ export async function GET(request: NextRequest) {
         };
     }
 
-    const baseInclude: Prisma.ProblemInclude = {
+    const baseInclude = {
         tags: {
             include: {
                 tag: true,
             },
         },
-    };
+    } satisfies Prisma.ProblemInclude;
 
     if (userId) {
         const problems = await prisma.problem.findMany({

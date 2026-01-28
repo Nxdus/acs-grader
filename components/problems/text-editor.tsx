@@ -1,7 +1,6 @@
 "use client"
 
 import MonacoEditor from "@monaco-editor/react";
-import type { editor as MonacoEditorType } from "monaco-editor";
 
 import {
     Select,
@@ -17,7 +16,7 @@ import {
     ButtonGroup,
 } from "@/components/ui/button-group"
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -307,7 +306,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
         }
     };
 
-    const loadSubmissionStatus = async (userId: string) => {
+    const loadSubmissionStatus = useCallback(async (userId: string) => {
         try {
             const response = await fetch(
                 `/api/tasks/${slug}/status?userId=${encodeURIComponent(userId)}`,
@@ -321,7 +320,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [slug]);
 
     useEffect(() => {
         if (!session?.user?.id) {
@@ -329,7 +328,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
             return;
         }
         void loadSubmissionStatus(session.user.id);
-    }, [session?.user?.id, slug]);
+    }, [loadSubmissionStatus, session?.user?.id]);
 
     return (
         <div className={`w-full h-full flex flex-col items-end gap-2 bg-[#fffffe] dark:bg-[#1e1e1e] p-2`}>

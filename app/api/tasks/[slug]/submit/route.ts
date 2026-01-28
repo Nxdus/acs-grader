@@ -279,7 +279,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                 memory: memoryValue ?? null,
             });
         }
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { error: "Failed to submit to Judge0." },
             { status: 502 },

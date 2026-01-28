@@ -11,19 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { User } from "@/generated/prisma/client";
-import { useState } from "react";
 
-const mockData: User[] = [
-  { id: "1", name: "Alice", attended: 10, score: 95 },
-  { id: "2", name: "Bob", attended: 8, score: 88 },
-  { id: "3", name: "Charlie", attended: 9, score: 92 },
-  { id: "4", name: "David", attended: 7, score: 85 },
-  { id: "5", name: "Eve", attended: 10, score: 98 },
-];
+const mockData: User[] = [];
 
-export default function page() {
-  const [rankings, setRankings] = useState<User[]>(mockData);
-  const [totalParticipants, setTotalParticipants] = useState(rankings.length);
+export default function Page() {
+  const rankings = mockData;
+  const totalParticipants = rankings.length;
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">

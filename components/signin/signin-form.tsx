@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { FaGithub, FaGoogle } from "react-icons/fa"
 
 import { Button } from "@/components/ui/button"
@@ -43,18 +43,14 @@ export function SigninForm({
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const [name, setName] = useState("")
-    const [isNameDialogOpen, setIsNameDialogOpen] = useState(false)
     const [nameDialogError, setNameDialogError] = useState<string | null>(null)
     const [isNameSubmitting, setIsNameSubmitting] = useState(false)
 
     const isNewOAuthUser = searchParams.get("new-user") === "1"
     const redirectUrl = "/"
-
-    useEffect(() => {
-        if (isNewOAuthUser) {
-            setIsNameDialogOpen(true)
-        }
-    }, [isNewOAuthUser])
+    const [isNameDialogOpen, setIsNameDialogOpen] = useState(
+        () => isNewOAuthUser,
+    )
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()

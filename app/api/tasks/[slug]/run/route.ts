@@ -220,7 +220,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                 judgeStatus,
             });
         }
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { error: "Failed to run testcases on Judge0." },
             { status: 502 },

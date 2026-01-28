@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
-import { useState } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
 
 interface Contest {
@@ -86,8 +85,8 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-export default function page() {
-  const [contests, setContests] = useState<Contest[]>(mockContests);
+export default function Page() {
+  const contests = mockContests;
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">

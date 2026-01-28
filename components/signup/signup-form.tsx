@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -42,7 +42,6 @@ export function SignupForm({
     const searchParams = useSearchParams()
     const [step, setStep] = useState<Step>("email")
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isNameDialogOpen, setIsNameDialogOpen] = useState(false)
     const [nameDialogError, setNameDialogError] = useState<string | null>(null)
     const [isNameSubmitting, setIsNameSubmitting] = useState(false)
 
@@ -70,12 +69,9 @@ export function SignupForm({
 
     const isNewOAuthUser = searchParams.get("new-user") === "1"
     const redirectUrl = "/"
-
-    useEffect(() => {
-        if (isNewOAuthUser) {
-            setIsNameDialogOpen(true)
-        }
-    }, [isNewOAuthUser])
+    const [isNameDialogOpen, setIsNameDialogOpen] = useState(
+        () => isNewOAuthUser,
+    )
 
     const handleSocialSignIn = async (provider: "google" | "github") => {
         const newUserCallbackURL = `${window.location.pathname}?new-user=1`
