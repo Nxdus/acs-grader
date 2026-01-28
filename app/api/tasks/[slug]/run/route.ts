@@ -69,6 +69,72 @@ const mapJudge0Status = (statusId: number) => {
     }
 };
 
+const POLL_DELAY_MS = 500;
+const MAX_POLL_ATTEMPTS = 30;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+type Judge0RunResult = {
+    stdout?: string | null;
+    stderr?: string | null;
+    compile_output?: string | null;
+    status?: { id?: number };
+};
+
+type Judge0PollResult<T> = {
+    result: T;
+    responseBase64: boolean;
+};
+
+const safeReadText = async (response: Response) => {
+    try {
+        return await response.text();
+    } catch {
+        return "";
+    }
+};
+
+const pollJudge0Result = async (
+    token: string,
+    useBase64: boolean,
+    judgeBaseUrl: string,
+    headers: HeadersInit,
+): Promise<Judge0PollResult<Judge0RunResult>> => {
+    let responseBase64 = useBase64;
+
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+        if (attempt > 0) {
+            await sleep(POLL_DELAY_MS);
+        }
+
+        const url = new URL(`/submissions/${token}`, judgeBaseUrl);
+        url.searchParams.set("base64_encoded", responseBase64 ? "true" : "false");
+
+        const response = await fetch(url.toString(), { headers });
+        if (!response.ok) {
+            const body = await safeReadText(response);
+            if (
+                response.status === 400 &&
+                body.includes("base64_encoded=true")
+            ) {
+                responseBase64 = true;
+                continue;
+            }
+            throw new Error(
+                `Judge0 poll failed with ${response.status}: ${body}`.trim(),
+            );
+        }
+
+        const result = (await response.json()) as Judge0RunResult;
+        const statusId = result?.status?.id ?? 1;
+        if (statusId >= 3) {
+            return { result, responseBase64 };
+        }
+    }
+
+    throw new Error("Judge0 timed out waiting for result.");
+};
+
 export async function POST(request: Request, { params }: RouteContext) {
     const resolvedParams = await params;
     const slug = resolvedParams.slug?.trim();
@@ -139,8 +205,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         );
     }
 
-    const judgeApiToken = process.env.JUDGE0_API_KEY?.trim();
-
     const results: Array<{
         testCaseId: number;
         actualOutput: string | null;
@@ -157,17 +221,16 @@ export async function POST(request: Request, { params }: RouteContext) {
 
             const url = new URL("/submissions/", judgeBaseUrl);
             url.searchParams.set("base64_encoded", useBase64 ? "true" : "false");
-            url.searchParams.set("wait", "true"); // 👈 บังคับรอจนเสร็จ
+            url.searchParams.set("wait", "false");
+
+            const headers = {
+                "Content-Type": "application/json",
+                "X-Judge0-Token": "paitongacs23kodlor",
+            };
 
             const response = await fetch(url.toString(), {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Judge0-Token": "paitongacs23kodlor",
-                    ...(judgeApiToken
-                        ? { "X-Auth-Token": judgeApiToken }
-                        : {}),
-                },
+                headers,
                 body: JSON.stringify({
                     source_code: encodeIfNeeded(code, useBase64),
                     language_id: languageId,
@@ -177,7 +240,10 @@ export async function POST(request: Request, { params }: RouteContext) {
             });
 
             if (!response.ok) {
-                throw new Error(`Judge0 request failed with ${response.status}`);
+                const body = await safeReadText(response);
+                throw new Error(
+                    `Judge0 request failed with ${response.status}: ${body}`.trim(),
+                );
             }
 
             const result = (await response.json()) as {
@@ -185,26 +251,47 @@ export async function POST(request: Request, { params }: RouteContext) {
                 stderr?: string | null;
                 compile_output?: string | null;
                 status?: { id?: number };
+                token?: string;
             };
+            const initialStatusId = result.status?.id ?? 1;
+            const polled =
+                result.token && initialStatusId < 3
+                    ? await pollJudge0Result(result.token, useBase64, judgeBaseUrl, headers)
+                    : null;
+            const finalResult = polled?.result ?? result;
+            const responseBase64 = polled?.responseBase64 ?? useBase64;
+            
+            console.info("Judge0 run response", {
+                slug,
+                testCaseId: testCase.id,
+                statusId: finalResult?.status?.id ?? null,
+                result: finalResult,
+            });
 
-            const statusId = result.status?.id ?? 1;
+            const statusId = finalResult?.status?.id ?? 1;
             const judgeStatus = mapJudge0Status(statusId);
             const rawOutput =
-                result.stdout ??
-                result.compile_output ??
-                result.stderr ??
+                finalResult?.stdout ??
+                finalResult?.compile_output ??
+                finalResult?.stderr ??
                 null;
 
             results.push({
                 testCaseId: testCase.id,
-                actualOutput: decodeIfNeeded(rawOutput, useBase64),
+                actualOutput: decodeIfNeeded(rawOutput, responseBase64),
                 passed: judgeStatus === "ACCEPTED",
                 judgeStatus,
             });
         }
-    } catch {
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message : "Unknown error";
+        console.error("Judge0 run failed", {
+            slug,
+            message,
+        });
         return NextResponse.json(
-            { error: "Failed to run testcases on Judge0." },
+            { error: "Failed to run testcases on Judge0.", detail: message },
             { status: 502 },
         );
     }

@@ -375,14 +375,14 @@ export default function TextEditor({ slug, allowedLanguageIds = [] }: TextEditor
                             onClick={handleRun}
                             disabled={!canRun || isRunning}
                         >
-                            <Play />
+                            {isRunning ? <Spinner /> : <Play />}
                         </Button>
                         <Button
                             variant={"default"}
                             onClick={handleSubmit}
                             disabled={!canSubmit || isSubmitting}
                         >
-                            {isSubmitting ? "Submitting..." : "Submit"}
+                            {isSubmitting ? <Spinner /> : "Submit"}
                         </Button>
                     </ButtonGroup>
                     <Select value={languageId} onValueChange={setLanguageId}>

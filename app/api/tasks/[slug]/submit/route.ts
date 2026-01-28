@@ -76,6 +76,74 @@ const mapJudge0Status = (statusId: number) => {
     }
 };
 
+const POLL_DELAY_MS = 500;
+const MAX_POLL_ATTEMPTS = 30;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+type Judge0SubmitResult = {
+    stdout?: string | null;
+    stderr?: string | null;
+    compile_output?: string | null;
+    status?: { id?: number };
+    time?: string | number | null;
+    memory?: string | number | null;
+};
+
+type Judge0PollResult<T> = {
+    result: T;
+    responseBase64: boolean;
+};
+
+const safeReadText = async (response: Response) => {
+    try {
+        return await response.text();
+    } catch {
+        return "";
+    }
+};
+
+const pollJudge0Result = async (
+    token: string,
+    useBase64: boolean,
+    judgeBaseUrl: string,
+    headers: HeadersInit,
+): Promise<Judge0PollResult<Judge0SubmitResult>> => {
+    let responseBase64 = useBase64;
+
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+        if (attempt > 0) {
+            await sleep(POLL_DELAY_MS);
+        }
+
+        const url = new URL(`/submissions/${token}`, judgeBaseUrl);
+        url.searchParams.set("base64_encoded", responseBase64 ? "true" : "false");
+
+        const response = await fetch(url.toString(), { headers });
+        if (!response.ok) {
+            const body = await safeReadText(response);
+            if (
+                response.status === 400 &&
+                body.includes("base64_encoded=true")
+            ) {
+                responseBase64 = true;
+                continue;
+            }
+            throw new Error(
+                `Judge0 poll failed with ${response.status}: ${body}`.trim(),
+            );
+        }
+
+        const result = (await response.json()) as Judge0SubmitResult;
+        const statusId = result?.status?.id ?? 1;
+        if (statusId >= 3) {
+            return { result, responseBase64 };
+        }
+    }
+
+    throw new Error("Judge0 timed out waiting for result.");
+};
+
 const pickFinalStatus = (statuses: Array<ReturnType<typeof mapJudge0Status>>) => {
     if (statuses.includes("INTERNAL_ERROR")) return "INTERNAL_ERROR";
     if (statuses.includes("COMPILATION_ERROR")) return "COMPILATION_ERROR";
@@ -187,7 +255,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         );
     }
 
-    const judgeApiToken = process.env.JUDGE0_API_KEY?.trim();
     const submissionResults: {
         testCaseId: number;
         actualOutput: string | null;
@@ -205,17 +272,16 @@ export async function POST(request: Request, { params }: RouteContext) {
                 shouldBase64Encode(testCase.output);
             const url = new URL("/submissions/", judgeBaseUrl);
             url.searchParams.set("base64_encoded", useBase64 ? "true" : "false");
-            url.searchParams.set("wait", "true");
+            url.searchParams.set("wait", "false");
+
+            const headers = {
+                "Content-Type": "application/json",
+                "X-Judge0-Token": "paitongacs23kodlor",
+            };
 
             const response = await fetch(url.toString(), {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Judge0-Token": "paitongacs23kodlor",
-                    ...(judgeApiToken
-                        ? { "X-Auth-Token": judgeApiToken }
-                        : {}),
-                },
+                headers,
                 body: JSON.stringify({
                     source_code: encodeIfNeeded(code, useBase64),
                     language_id: languageId,
@@ -225,7 +291,10 @@ export async function POST(request: Request, { params }: RouteContext) {
             });
 
             if (!response.ok) {
-                throw new Error(`Judge0 request failed with ${response.status}`);
+                const body = await safeReadText(response);
+                throw new Error(
+                    `Judge0 request failed with ${response.status}: ${body}`.trim(),
+                );
             }
 
             const result = (await response.json()) as {
@@ -237,39 +306,59 @@ export async function POST(request: Request, { params }: RouteContext) {
                 memory?: string | number | null;
                 token?: string;
             };
+            const initialStatusId = result.status?.id ?? 1;
+            const polled =
+                result.token && initialStatusId < 3
+                    ? await pollJudge0Result(result.token, useBase64, judgeBaseUrl, headers)
+                    : null;
+            const finalResult = polled?.result ?? result;
+            const responseBase64 = polled?.responseBase64 ?? useBase64;
+            
+            console.info("Judge0 submit response", {
+                slug,
+                testCaseId: testCase.id,
+                statusId: finalResult?.status?.id ?? null,
+                result: finalResult,
+            });
 
-            const statusId = result.status?.id ?? 1;
+            const statusId = finalResult?.status?.id ?? 1;
             const judgeStatus = mapJudge0Status(statusId);
             const timeValue =
-                typeof result.time === "number"
-                    ? result.time
-                    : result.time
-                        ? Number(result.time)
+                typeof finalResult?.time === "number"
+                    ? finalResult.time
+                    : finalResult?.time
+                        ? Number(finalResult.time)
                         : null;
             const memoryValue =
-                typeof result.memory === "number"
-                    ? result.memory
-                    : result.memory
-                        ? Number(result.memory)
+                typeof finalResult?.memory === "number"
+                    ? finalResult.memory
+                    : finalResult?.memory
+                        ? Number(finalResult.memory)
                         : null;
             const rawOutput =
-                result.stdout ??
-                result.compile_output ??
-                result.stderr ??
+                finalResult?.stdout ??
+                finalResult?.compile_output ??
+                finalResult?.stderr ??
                 null;
 
             submissionResults.push({
                 testCaseId: testCase.id,
-                actualOutput: decodeIfNeeded(rawOutput, useBase64),
+                actualOutput: decodeIfNeeded(rawOutput, responseBase64),
                 passed: judgeStatus === "ACCEPTED",
                 runtime: timeValue ?? null,
                 judgeStatus,
                 memory: memoryValue ?? null,
             });
         }
-    } catch {
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message : "Unknown error";
+        console.error("Judge0 submit failed", {
+            slug,
+            message,
+        });
         return NextResponse.json(
-            { error: "Failed to submit to Judge0." },
+            { error: "Failed to submit to Judge0.", detail: message },
             { status: 502 },
         );
     }
