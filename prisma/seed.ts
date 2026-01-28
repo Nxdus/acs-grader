@@ -28,6 +28,8 @@ type SeedProblem = {
   }>
 }
 
+const DEFAULT_ALLOWED_LANGUAGE_IDS = [50, 54, 62, 63]
+
 const seedProblems: SeedProblem[] = [
   {
     slug: "two-sum",
@@ -229,6 +231,10 @@ const seed = async () => {
       continue
     }
 
+    const allowedLanguageIds = problem.allowedLanguageIds?.length
+      ? Array.from(new Set([...problem.allowedLanguageIds, ...DEFAULT_ALLOWED_LANGUAGE_IDS]))
+      : DEFAULT_ALLOWED_LANGUAGE_IDS
+
     await prisma.problem.create({
       data: {
         slug: problem.slug,
@@ -238,7 +244,7 @@ const seed = async () => {
         constraints: problem.constraints,
         inputFormat: problem.inputFormat,
         outputFormat: problem.outputFormat,
-        allowedLanguageIds: problem.allowedLanguageIds ?? [],
+        allowedLanguageIds,
         participantCount: problem.participantCount,
         successCount: problem.successCount,
         isPublished: true,
