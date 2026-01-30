@@ -23,7 +23,7 @@ type ContestParticipantWithUser = ContestParticipant & {
     user?: User;
 };
 
-export default function page() {
+export default function Page() {
     const { slug } = useParams();
     const { data: session } = useSession()
 
