@@ -1,9 +1,13 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
   try {
-    const contestId = Number(params.id);
+    const slug = (await params).slug;
+    const contestId = Number(slug);
 
     const problems = await prisma.contestProblem.findMany({
       where: { contestId },
