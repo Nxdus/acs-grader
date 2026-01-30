@@ -33,20 +33,28 @@ enum SubmissionStatus {
   STORAGE_LIMIT_EXCEEDED
 }
 
+enum ContestScoringType {
+  ACM
+  SCORE
+}
+
 model User {
-  id            String       @id
+  id            String   @id
   name          String
   email         String
   emailVerified Boolean
   image         String?
-  role          Role         @default(USER)
-  score         Int          @default(0)
-  attended      Int          @default(0)
+  role          Role     @default(USER)
+  score         Int      @default(0)
+  attended      Int      @default(0)
   createdAt     DateTime
   updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
-  submissions   Submission[]
+
+  sessions    Session[]
+  accounts    Account[]
+  submissions Submission[]
+
+  contestParticipants ContestParticipant[]
 
   @@unique([email])
   @@map("user")
@@ -114,6 +122,8 @@ model Problem {
   testCases   TestCase[]
   submissions Submission[]
   tags        ProblemTag[]
+
+  contestProblems ContestProblem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -186,4 +196,56 @@ model ProblemTag {
 
   @@id([problemId, tagId])
   @@map("problem_tag")
+}
+
+model Contest {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique
+  title       String
+  description String?
+
+  startAt  DateTime
+  endAt    DateTime
+  isPublic Boolean  @default(true)
+
+  scoringType ContestScoringType
+  freezeAt    DateTime?
+
+  problems     ContestProblem[]
+  participants ContestParticipant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contest")
+}
+
+model ContestProblem {
+  contestId Int
+  problemId Int
+  order     Int
+  maxScore  Int?
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@id([contestId, problemId])
+  @@map("contest_problem")
+}
+
+model ContestParticipant {
+  contestId Int
+  userId    String
+
+  totalScore Int  @default(0)
+  penalty    Int  @default(0)
+  rank       Int?
+
+  lastSubmitAt DateTime?
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([contestId, userId])
+  @@map("contest_participant")
 }
