@@ -1,34 +1,34 @@
-import { PrismaClient } from "../generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { PrismaClient } from "../generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
-})
+});
 
-const prisma = new PrismaClient({ adapter })
+const prisma = new PrismaClient({ adapter });
 
-console.log(adapter)
+console.log(adapter);
 
 type SeedProblem = {
-  slug: string
-  title: string
-  difficulty: "EASY" | "MEDIUM" | "HARD"
-  description: string
-  constraints?: string
-  inputFormat?: string
-  outputFormat?: string
-  allowedLanguageIds?: number[]
-  participantCount: number
-  successCount: number
-  tags: string[]
+  slug: string;
+  title: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  description: string;
+  constraints?: string;
+  inputFormat?: string;
+  outputFormat?: string;
+  allowedLanguageIds?: number[];
+  participantCount: number;
+  successCount: number;
+  tags: string[];
   testCases: Array<{
-    input: string
-    output: string
-    isSample?: boolean
-  }>
-}
+    input: string;
+    output: string;
+    isSample?: boolean;
+  }>;
+};
 
-const DEFAULT_ALLOWED_LANGUAGE_IDS = [50, 54, 62, 63]
+const DEFAULT_ALLOWED_LANGUAGE_IDS = [50, 54, 62, 63];
 
 const seedProblems: SeedProblem[] = [
   {
@@ -78,7 +78,11 @@ const seedProblems: SeedProblem[] = [
     successCount: 40,
     tags: ["Sorting", "Arrays"],
     testCases: [
-      { input: "4\n1 3\n2 6\n8 10\n15 18\n", output: "1 6\n8 10\n15 18\n", isSample: true },
+      {
+        input: "4\n1 3\n2 6\n8 10\n15 18\n",
+        output: "1 6\n8 10\n15 18\n",
+        isSample: true,
+      },
     ],
   },
   {
@@ -112,7 +116,11 @@ const seedProblems: SeedProblem[] = [
     successCount: 29,
     tags: ["Trees", "BFS"],
     testCases: [
-      { input: "3 9 20 null null 15 7\n", output: "3\n9 20\n15 7\n", isSample: true },
+      {
+        input: "3 9 20 null null 15 7\n",
+        output: "3\n9 20\n15 7\n",
+        isSample: true,
+      },
     ],
   },
   {
@@ -143,16 +151,13 @@ const seedProblems: SeedProblem[] = [
     participantCount: 67,
     successCount: 24,
     tags: ["Dynamic Programming", "Arrays"],
-    testCases: [
-      { input: "3 11\n1 2 5\n", output: "3\n", isSample: true },
-    ],
+    testCases: [{ input: "3 11\n1 2 5\n", output: "3\n", isSample: true }],
   },
   {
     slug: "top-k-frequent",
     title: "Top K Frequent Elements",
     difficulty: "MEDIUM",
-    description:
-      "Return the k most frequent elements from an integer array.",
+    description: "Return the k most frequent elements from an integer array.",
     constraints: "1 <= n <= 10^5.",
     inputFormat: "n k on first line, then n integers.",
     outputFormat: "k elements in any order.",
@@ -167,8 +172,7 @@ const seedProblems: SeedProblem[] = [
     slug: "matrix-rotation",
     title: "Rotate Matrix",
     difficulty: "HARD",
-    description:
-      "Rotate an NxN matrix 90 degrees clockwise in place.",
+    description: "Rotate an NxN matrix 90 degrees clockwise in place.",
     constraints: "1 <= n <= 500.",
     inputFormat: "n followed by n lines of n integers.",
     outputFormat: "The rotated matrix.",
@@ -176,7 +180,11 @@ const seedProblems: SeedProblem[] = [
     successCount: 8,
     tags: ["Arrays", "Math"],
     testCases: [
-      { input: "3\n1 2 3\n4 5 6\n7 8 9\n", output: "7 4 1\n8 5 2\n9 6 3\n", isSample: true },
+      {
+        input: "3\n1 2 3\n4 5 6\n7 8 9\n",
+        output: "7 4 1\n8 5 2\n9 6 3\n",
+        isSample: true,
+      },
     ],
   },
   {
@@ -192,20 +200,88 @@ const seedProblems: SeedProblem[] = [
     successCount: 5,
     tags: ["Graphs", "Greedy"],
     testCases: [
-      { input: "4 5\n1 2 1\n1 3 4\n2 3 2\n2 4 7\n3 4 3\n", output: "6\n", isSample: true },
+      {
+        input: "4 5\n1 2 1\n1 3 4\n2 3 2\n2 4 7\n3 4 3\n",
+        output: "6\n",
+        isSample: true,
+      },
     ],
   },
-]
+];
+
+type SeedContest = {
+  slug: string;
+  title: string;
+  description?: string;
+  startAt: Date;
+  endAt: Date;
+  isPublic?: boolean;
+  scoringType: "ACM" | "SCORE";
+  freezeAt?: Date;
+  problems: Array<{
+    slug: string;
+    order: number;
+    maxScore?: number;
+  }>;
+};
+
+const seedContests: SeedContest[] = [
+  {
+    slug: "beginner-contest-1",
+    title: "Beginner Contest 1",
+    description: "Introduction to basic data structures and algorithms",
+    startAt: new Date("2026-02-01T10:00:00Z"),
+    endAt: new Date("2026-02-01T12:00:00Z"),
+    isPublic: true,
+    scoringType: "ACM",
+    freezeAt: new Date("2026-02-01T11:50:00Z"),
+    problems: [
+      { slug: "two-sum", order: 1, maxScore: 100 },
+      { slug: "valid-parentheses", order: 2, maxScore: 100 },
+      { slug: "merge-intervals", order: 3, maxScore: 150 },
+    ],
+  },
+  {
+    slug: "intermediate-contest-1",
+    title: "Intermediate Contest 1",
+    description: "Advanced algorithms and optimization",
+    startAt: new Date("2026-02-08T14:00:00Z"),
+    endAt: new Date("2026-02-08T17:00:00Z"),
+    isPublic: true,
+    scoringType: "SCORE",
+    freezeAt: new Date("2026-02-08T16:45:00Z"),
+    problems: [
+      { slug: "longest-substring-no-repeat", order: 1, maxScore: 200 },
+      { slug: "binary-tree-level-order", order: 2, maxScore: 250 },
+      { slug: "shortest-path-grid", order: 3, maxScore: 300 },
+    ],
+  },
+  {
+    slug: "advanced-contest-1",
+    title: "Advanced Contest 1",
+    description: "Hard-level problems for experts",
+    startAt: new Date("2026-02-15T09:00:00Z"),
+    endAt: new Date("2026-02-15T14:00:00Z"),
+    isPublic: true,
+    scoringType: "ACM",
+    freezeAt: new Date("2026-02-15T13:45:00Z"),
+    problems: [
+      { slug: "coin-change", order: 1, maxScore: 300 },
+      { slug: "matrix-rotation", order: 2, maxScore: 350 },
+      { slug: "minimum-spanning-tree", order: 3, maxScore: 400 },
+    ],
+  },
+];
 
 const collectTags = (items: SeedProblem[]) => {
-  const names = new Set<string>()
+  const names = new Set<string>();
   for (const problem of items) {
     for (const tag of problem.tags) {
-      names.add(tag)
+      names.add(tag);
     }
   }
-  return Array.from(names)
-}
+  return Array.from(names);
+};
 
 const ensureTags = async (tagNames: string[]) => {
   for (const name of tagNames) {
@@ -213,27 +289,77 @@ const ensureTags = async (tagNames: string[]) => {
       where: { name },
       update: {},
       create: { name },
-    })
+    });
   }
-}
+};
+
+const seedContestData = async () => {
+  for (const contest of seedContests) {
+    const existing = await prisma.contest.findUnique({
+      where: { slug: contest.slug },
+      select: { id: true },
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    const problemsData = [];
+    for (const problemRef of contest.problems) {
+      const problem = await prisma.problem.findUnique({
+        where: { slug: problemRef.slug },
+        select: { id: true },
+      });
+
+      if (problem) {
+        problemsData.push({
+          problemId: problem.id,
+          order: problemRef.order,
+          maxScore: problemRef.maxScore,
+        });
+      }
+    }
+
+    await prisma.contest.create({
+      data: {
+        slug: contest.slug,
+        title: contest.title,
+        description: contest.description,
+        startAt: contest.startAt,
+        endAt: contest.endAt,
+        isPublic: contest.isPublic ?? true,
+        scoringType: contest.scoringType,
+        freezeAt: contest.freezeAt,
+        problems: {
+          create: problemsData,
+        },
+      },
+    });
+  }
+};
 
 const seed = async () => {
-  const tagNames = collectTags(seedProblems)
-  await ensureTags(tagNames)
+  const tagNames = collectTags(seedProblems);
+  await ensureTags(tagNames);
 
   for (const problem of seedProblems) {
     const existing = await prisma.problem.findUnique({
       where: { slug: problem.slug },
       select: { id: true },
-    })
+    });
 
     if (existing) {
-      continue
+      continue;
     }
 
     const allowedLanguageIds = problem.allowedLanguageIds?.length
-      ? Array.from(new Set([...problem.allowedLanguageIds, ...DEFAULT_ALLOWED_LANGUAGE_IDS]))
-      : DEFAULT_ALLOWED_LANGUAGE_IDS
+      ? Array.from(
+          new Set([
+            ...problem.allowedLanguageIds,
+            ...DEFAULT_ALLOWED_LANGUAGE_IDS,
+          ]),
+        )
+      : DEFAULT_ALLOWED_LANGUAGE_IDS;
 
     await prisma.problem.create({
       data: {
@@ -261,15 +387,17 @@ const seed = async () => {
           })),
         },
       },
-    })
+    });
   }
-}
+
+  await seedContestData();
+};
 
 seed()
   .catch((error) => {
-    console.error("Seed failed:", error)
-    process.exitCode = 1
+    console.error("Seed failed:", error);
+    process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });
