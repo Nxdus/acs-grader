@@ -4,60 +4,35 @@ import { SectionNavBar } from "@/components/sidebar/section-navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import Image from "next/image";
-import { Calendar, Clock, Users } from "lucide-react";
+import { Calendar, Clock, Eye, Link2, LogIn, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Contest } from "@/generated/prisma/client";
+import { ContestParticipant } from "@/generated/prisma/client";
+import { useSession } from "@/lib/auth-client";
+import { Spinner } from "@/components/ui/spinner"
+import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 
-interface Contest {
-  id: string;
-  name: string;
-  iamgeUrl?: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-  participantCount?: number;
+type ContestWithStatus = Contest & {
   status: "active" | "upcoming" | "ended";
+  participants?: Array<ContestParticipant>;
+};
+
+enum Role {
+  USER = "USER",
+  STAFF = "STAFF",
+  ADMIN = "ADMIN",
 }
 
-const mockContests: Contest[] = [
-  {
-    id: "1",
-    name: "Programming Challenge 2024",
-    description:
-      "Test your competitive programming skills with challenging algorithmic problems",
-    createdAt: "2024-01-01",
-    updatedAt: "2024-01-10",
-    participantCount: 156,
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Web Development Sprint",
-    description: "Build modern web applications with the latest technologies",
-    createdAt: "2024-02-01",
-    updatedAt: "2024-02-10",
-    participantCount: 89,
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Data Structures & Algorithms",
-    description: "Master fundamental data structures and algorithms",
-    createdAt: "2024-03-01",
-    updatedAt: "2024-03-10",
-    participantCount: 203,
-    status: "upcoming",
-  },
-  {
-    id: "4",
-    name: "Machine Learning Basics",
-    description:
-      "Introduction to machine learning concepts and implementations",
-    createdAt: "2023-12-01",
-    updatedAt: "2023-12-15",
-    participantCount: 92,
-    status: "ended",
-  },
-];
+const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
+  const now = new Date();
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+
+  if (now < start) return "upcoming";
+  if (now > end) return "ended";
+  return "active";
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -85,8 +60,54 @@ const getStatusLabel = (status: string) => {
   }
 };
 
+const formatDate = (date: Date | string) => {
+  const d = new Date(date);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
 export default function Page() {
-  const contests = mockContests;
+  const [contests, setContests] = useState<ContestWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { data: session } = useSession()
+
+  useEffect(() => {
+    const fetchContests = async () => {
+      try {
+        const response = await fetch("/api/contest");
+        const data = await response.json();
+
+        const contestsWithStatus = data.map((contest: Contest) => ({
+          ...contest,
+          status: getContestStatus(contest.startAt, contest.endAt),
+        }));
+
+        setContests(contestsWithStatus);
+      } catch (error) {
+        console.error("Failed to fetch contests:", error);
+        setContests([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContests();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="w-full h-full flex flex-col rounded-xl bg-background">
+        <SectionNavBar items={[{ label: "Contest" }]} />
+        <div className="container flex flex-1 my-7 mx-auto px-4 justify-center items-center">
+          <Spinner />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
@@ -132,7 +153,7 @@ export default function Page() {
                 </p>
                 <p className="text-2xl font-bold text-purple-600">
                   {contests.reduce(
-                    (sum, c) => sum + (c.participantCount || 0),
+                    (sum, c) => sum + (c.participants?.length ?? 0),
                     0,
                   )}
                 </p>
@@ -142,76 +163,75 @@ export default function Page() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           {contests.map((contest) => (
             <Card
               key={contest.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow border-0 p-0"
+              className="relative overflow-hidden hover:shadow-lg transition-shadow border-0 p-0 gap-0"
             >
-              <div className="h-40 bg-accent flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
-                <div className="text-center">
-                  {contest.iamgeUrl ? (
-                    <Image
-                      src={contest.iamgeUrl}
-                      alt={contest.name}
-                      width={100}
-                      height={100}
-                      className="w-24 h-24 object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="text-4xl font-bold text-primary/30">
-                      {contest.name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-1 flex-col justify-between p-5">
-                <div className="flex items-start justify-between mb-3">
+              <Badge className={`absolute right-2 top-2 ${getStatusColor(contest.status)}`}>
+                {getStatusLabel(contest.status)}
+              </Badge>
+              <div className="flex flex-1 justify-between p-5">
+                <div className="flex flex-col items-start justify-between">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-foreground mb-1">
-                      {contest.name}
+                      {contest.title}
                     </h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {contest.description || "No description available"}
                     </p>
                   </div>
-                  <Badge className={`ml-2 ${getStatusColor(contest.status)}`}>
-                    {getStatusLabel(contest.status)}
-                  </Badge>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 py-2 border-t border-border/50">
+                  <Separator />
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground py-2">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      <span>{contest.participantCount || 0} participants</span>
+                      <span>{contest.participants?.length ?? 0} participants</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      <span>{contest.createdAt}</span>
+                      <span>{formatDate(contest.startAt)}</span>
                     </div>
                   </div>
-
-                  <Button className="w-full" variant="default">
-                    {contest.status === "ended" ? "View Results" : "Join Contest"}
-                  </Button>
                 </div>
               </div>
+              {contest.status === "active" ? (
+                <Button className="w-full border-0 hover:bg-secondary-foreground/90" variant="default" asChild>
+                  <Link href={`/contest/${contest.slug}`}>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Join Contest
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  className="w-full border-0 opacity-60 cursor-not-allowed"
+                  disabled
+                  variant={contest.status === "ended" ? "destructive" : "default"}
+                >
+                  {contest.status === "ended" ? (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />View Results
+                    </>
+                  ) : (
+                    "Coming Soon..."
+                  )}
+                </Button>
+              )}
             </Card>
           ))}
         </div>
 
         {contests.length === 0 && (
           <Card className="p-12 text-center border-dashed">
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground">
               No contests available at the moment
             </p>
-            <Button variant="outline">Create Contest</Button>
+            {(session?.user?.role === Role.ADMIN || session?.user?.role === Role.STAFF) &&
+              <Button className="mt-4" variant="outline">Create Contest</Button>
+            }
           </Card>
         )}
       </div>
-    </main>
+    </main >
   );
 }
