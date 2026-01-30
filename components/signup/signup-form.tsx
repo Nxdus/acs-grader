@@ -154,7 +154,7 @@ export function SignupForm({
             <div className="min-w-sm max-w-md">
                 <FieldGroup>
                     <div className="flex flex-col items-center gap-2 text-center">
-                        <Image draggable={false} src={"/images/acs.svg"} alt="@ACS" width={128} height={128} className="w-16 dark:invert" />
+                        <Image draggable={false} src={"/images/acs.svg"} alt="@ACS" width={128} height={128} className="w-32 dark:invert" />
                         <h1 className="text-xl font-bold text-primary">
                             Create your account
                         </h1>
