@@ -4,7 +4,7 @@ import { SectionNavBar } from "@/components/sidebar/section-navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Clock, Eye, Link2, LogIn, Users } from "lucide-react";
+import { Calendar, Clock, Eye, LogIn, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Contest } from "@/generated/prisma/client";
 import { ContestParticipant } from "@/generated/prisma/client";
