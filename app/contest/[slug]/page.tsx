@@ -45,7 +45,6 @@ export default function Page() {
                 }
                 const data: ContestParticipantWithUser[] = await response.json();
                 const sorted = data.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
-                console.log(data);
 
                 setRankings(sorted);
             } catch (error) {
