@@ -7,7 +7,6 @@ export async function GET(
 ) {
   try {
     const problemSlug = (await params).problem;
-    console.log(problemSlug);
 
     const response = await prisma.contestProblem.findFirst({
       where: {

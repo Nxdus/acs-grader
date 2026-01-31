@@ -111,7 +111,7 @@ export default async function Page({
   if (!task || !contestObj) {
     notFound()
   }
-  console.log(task.problem);
+
 
   const problemTitle = problem
     .split("-")
@@ -151,7 +151,7 @@ export default async function Page({
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel maxSize="80%" minSize="40%">
-          <TextEditor slug={problem} allowedLanguageIds={task.allowedLanguageIds ?? []} />
+          <TextEditor slug={problem} allowedLanguageIds={task.problem.allowedLanguageIds ?? []} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </main>
