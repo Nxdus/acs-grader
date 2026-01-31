@@ -5,7 +5,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item";
-import type { Difficulty, SubmissionStatus } from "@/generated/prisma/client";
+import type { ContestProblem, Difficulty, SubmissionStatus } from "@/generated/prisma/client";
 import Link from "next/link";
 
 export type ProblemListItem = {
@@ -17,6 +17,7 @@ export type ProblemListItem = {
   successCount: number;
   hasSubmission?: boolean;
   submissionStatus?: SubmissionStatus | null;
+  contestProblems: ContestProblem[] | [];
 };
 
 const getDifficultyMeta = (difficulty: Difficulty) => {
@@ -36,10 +37,12 @@ function ProblemItem({
   problem,
   className,
   order,
+  prefix
 }: {
   problem: ProblemListItem;
   className?: string;
   order: number;
+  prefix: string;
 }) {
   const difficultyMeta = getDifficultyMeta(problem.difficulty);
   const successRate = problem.participantCount
@@ -49,7 +52,7 @@ function ProblemItem({
   const showProgress = typeof problem.hasSubmission === "boolean";
 
   return (
-    <Link href={"/problems/" + problem.slug}>
+    <Link href={prefix + "/" + problem.slug}>
       <Item className={className} variant={"default"} size={"xs"}>
         <ItemContent className="flex-row justify-between items-center">
           <div className="flex flex-3/4">

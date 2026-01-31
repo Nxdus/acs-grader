@@ -27,7 +27,7 @@ type ContestParticipantWithUser = ContestParticipant & {
 
 export default function Page() {
     const { slug } = useParams();
-    const { data: session } = useSession()
+    const { data: session } = useSession();
 
     const [contest, setContest] = useState<ContestWithParticipant>();
     const [problems, setProblems] = useState<ContestProblemWithProblem[]>([]);
@@ -96,7 +96,10 @@ export default function Page() {
 
     return (
         <main className="w-full h-full flex flex-col rounded-xl bg-background">
-            <SectionNavBar items={[{ label: contest?.title || "" }]} />
+            <SectionNavBar items={[
+                { label: "Contest", href: "/contest" },
+                { label: contest?.title || "" }
+            ]} />
 
             <div className="container my-7 mx-auto px-4">
                 <div className="mb-6">
@@ -110,7 +113,7 @@ export default function Page() {
                         <h2 className="font-semibold">Problem</h2>
                         <ItemGroup className="mt-4 gap-0 has-[[data-size=sm]]:gap-0 has-[[data-size=xs]]:gap-0">
                             {problems.map((p, index) => (
-                                <ProblemItem className={index % 2 == 0 ? "bg-muted" : "bg-background"} key={p.problemId} problem={p.problem} order={index + 1} />
+                                <ProblemItem className={index % 2 == 0 ? "bg-muted" : "bg-background"} prefix={`/contest/${slug}`} key={p.problemId} problem={p.problem} order={index + 1} />
                             ))}
                         </ItemGroup>
                     </div>
