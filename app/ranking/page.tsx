@@ -59,7 +59,7 @@ export default function Page() {
                     src={userRankData.image ? userRankData.image : "/avatar.png"}
                     alt={userRankData.name}
                   />
-                  <AvatarFallback>NX</AvatarFallback>
+                  <AvatarFallback>{userRankData.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-semibold text-base">{userRankData.name} (You)</div>
@@ -105,7 +105,7 @@ export default function Page() {
                     src={user.image ? user.image : "/avatar.png"}
                     alt={user.name}
                   />
-                  <AvatarFallback>NX</AvatarFallback>
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className={cn("font-semibold",
