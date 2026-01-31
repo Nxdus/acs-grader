@@ -67,7 +67,12 @@ export default function Page() {
     useEffect(() => {
         const fetchContest = async () => {
             try {
-                const response = await fetch(`/api/contest/${slug}`);
+                const params = new URLSearchParams();
+                if (session?.user?.id) {
+                    params.set("userId", session.user.id);
+                }
+                const url = params.size ? `/api/contest/${slug}?${params.toString()}` : `/api/contest/${slug}`;
+                const response = await fetch(url);
                 if (!response.ok) throw new Error("Failed to fetch contest");
 
                 const data = await response.json();
@@ -83,7 +88,7 @@ export default function Page() {
         };
 
         if (slug) fetchContest();
-    }, [slug]);
+    }, [slug, session?.user?.id]);
 
     if (loading) {
         return (

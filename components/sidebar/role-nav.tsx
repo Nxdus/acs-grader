@@ -17,12 +17,12 @@ export function RoleNav({ role }: RoleNavProps) {
       ? [
           {
             title: "Manage Problems",
-            url: "/staff/problems",
+            url: "/manage/problems",
             icon: FilePenLine,
           },
           {
             title: "Manage Contests",
-            url: "/staff/contests",
+            url: "/manage/contests",
             icon: Trophy,
           },
         ]
@@ -31,7 +31,7 @@ export function RoleNav({ role }: RoleNavProps) {
       ? [
           {
             title: "Manage Users",
-            url: "/admin/users",
+            url: "/manage/users",
             icon: Users,
           },
         ]
