@@ -7,10 +7,13 @@ export async function GET(
 ) {
   try {
     const slug = (await params).slug;
-    const contestId = Number(slug);
 
     const leaderboard = await prisma.contestParticipant.findMany({
-      where: { contestId },
+      where: {
+        contest: {
+          slug: slug,
+        },
+      },
       orderBy: [{ totalScore: "desc" }, { penalty: "asc" }],
       include: {
         user: {

@@ -11,6 +11,8 @@ import { useSession } from "@/lib/auth-client";
 import { ChessQueen, ChessRook, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const LEADERBOARD_SIZE = 10;
+
 type ContestProblemWithProblem = ContestProblem & {
     problem: ProblemListItem;
 };
@@ -30,19 +32,22 @@ export default function Page() {
     const [contest, setContest] = useState<ContestWithParticipant>();
     const [problems, setProblems] = useState<ContestProblemWithProblem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [rankings, setRankings] = useState<User[]>([]);
+    const [rankings, setRankings] = useState<ContestParticipantWithUser[]>([]);
+    const [userRankingData, setUserRankingData] = useState<ContestParticipantWithUser | null>(null);
+    const [userRank, setUserRank] = useState<number>(NaN);
 
     useEffect(() => {
         const fetchRankings = async () => {
             try {
-                const response = await fetch("/api/rankings");
+                const response = await fetch(`/api/contest/${slug}/leaderboard`);
                 if (!response.ok) {
-                    throw new Error("Failed to fetch rankings");
+                    throw new Error("Failed to fetch leaderboard");
                 }
-                const data: User[] = await response.json();
-                const sorted = data.sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10)
+                const data: ContestParticipantWithUser[] = await response.json();
+                const sorted = data.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+                console.log(data);
 
-                setRankings([...sorted, ...sorted, ...sorted, ...sorted, ...sorted, ...sorted, ...sorted, ...sorted, ...sorted, ...sorted])
+                setRankings(sorted);
             } catch (error) {
                 console.error("Error fetching rankings:", error);
             }
@@ -50,6 +55,15 @@ export default function Page() {
 
         fetchRankings();
     }, []);
+
+    useEffect(() => {
+        if (!session?.user) return;
+
+        const userIndex = rankings.findIndex((u) => u.userId === session.user.id) ?? NaN;
+        const user = rankings[userIndex] ?? null;
+        setUserRankingData(user);
+        setUserRank(userIndex + 1);
+    }, [rankings, session?.user]);
 
     useEffect(() => {
         const fetchContest = async () => {
@@ -102,36 +116,75 @@ export default function Page() {
                     </div>
                     <div className="flex-1/4">
                         <h2 className="font-semibold text-center">Leaderboard</h2>
-                        <div className="mt-4 flex flex-col justify-center items-center">
-                            {rankings.map((user, index) => (
-                                <div
-                                    key={index}
-                                    className={cn(
-                                        "flex w-full items-center justify-between text-sm",
-                                        index === 0 ? "bg-linear-to-br from-yellow-300/30 to-yellow-500/10 border-0" :
-                                            index === 1 ? "bg-linear-to-br from-gray-400/30 to-gray-100/10 dark:from-gray-300/30 dark:to-gray-500/10 border-0" :
-                                                index === 2 ? "bg-linear-to-br from-orange-300/30 to-orange-500/10 border-0" :
-                                                    "bg-muted"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <div className="flex items-center justify-center w-10 h-10">
-                                            {index === 0 ? <Crown className="text-yellow-500 drop-shadow-lg" size={16} /> : index === 1 ? <ChessQueen className="text-gray-400 drop-shadow-lg" size={16} /> : index === 2 ? <ChessRook className="text-orange-500 drop-shadow-lg" size={16} /> : index + 1}
+                        {rankings.length > 0 ?
+                            (
+                                <div className="mt-4 flex flex-col justify-center items-center">
+                                    {rankings.slice(0, LEADERBOARD_SIZE).map((user, index) => (
+                                        <div
+                                            key={index}
+                                            className={cn(
+                                                "flex w-full items-center justify-between text-sm",
+                                                index === 0 ? "bg-linear-to-br from-yellow-300/30 to-yellow-500/10 border-0" :
+                                                    index === 1 ? "bg-linear-to-br from-gray-400/30 to-gray-100/10 dark:from-gray-300/30 dark:to-gray-500/10 border-0" :
+                                                        index === 2 ? "bg-linear-to-br from-orange-300/30 to-orange-500/10 border-0" :
+                                                            "bg-muted"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div className="flex items-center justify-center w-10 h-10">
+                                                    {index === 0 ? <Crown className="text-yellow-500 drop-shadow-lg" size={16} /> : index === 1 ? <ChessQueen className="text-gray-400 drop-shadow-lg" size={16} /> : index === 2 ? <ChessRook className="text-orange-500 drop-shadow-lg" size={16} /> : index + 1}
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold">{user.user?.name} {user.userId === session?.user?.id ? "(You)" : ""}</div>
+                                                </div>
+                                            </div>
+                                            <div className={cn(
+                                                "w-10 h-10 flex items-center justify-center",
+                                                index === 0 ? "text-yellow-600 dark:text-yellow-400 drop-shadow-lg" :
+                                                    index === 1 ? "text-gray-600 dark:text-gray-300 drop-shadow-lg" :
+                                                        index === 2 ? "text-orange-600 dark:text-orange-400 drop-shadow-lg" :
+                                                            ""
+                                            )}>{user.totalScore}</div>
                                         </div>
-                                        <div>
-                                            <div className="font-semibold">{user.name} {user.id === session?.user?.id ? "(You)" : ""}</div>
-                                        </div>
+                                    ))}
+
+                                    <div className="mt-6 w-full">
+                                        {!loading ? (
+                                            userRank > LEADERBOARD_SIZE && (
+                                                <div>
+                                                    <h2 className="font-semibold text-center mb-4">Your Ranking</h2>
+                                                    <div className="flex w-full items-center justify-between text-sm bg-blue-400/10">
+                                                        <div className="flex items-center gap-4 flex-1">
+                                                            <div className="text-blue-500 font-semibold flex items-center justify-center w-10 h-10">
+                                                                {userRank}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-semibold">{userRankingData?.user?.name}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-10 h-10 font-bold text-blue-500 flex items-center justify-center">
+                                                            {userRankingData?.totalScore}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="flex justify-center items-center">
+                                                <Spinner />
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className={cn(
-                                        "w-10 h-10 flex items-center justify-center",
-                                        index === 0 ? "text-yellow-600 dark:text-yellow-400 drop-shadow-lg" :
-                                            index === 1 ? "text-gray-600 dark:text-gray-300 drop-shadow-lg" :
-                                                index === 2 ? "text-orange-600 dark:text-orange-400 drop-shadow-lg" :
-                                                    ""
-                                    )}>{user.score}</div>
                                 </div>
-                            ))}
-                        </div>
+                            )
+                            :
+                            (
+                                <div className="mt-4 flex flex-col justify-center items-center">
+                                    <span className="text-muted-foreground text-xs">
+                                        No participants yet.
+                                    </span>
+                                </div>
+                            )
+                        }
                     </div>
                 </div>
             </div>
