@@ -114,7 +114,7 @@ function initialsFromName(name: string) {
 }
 
 function statusBadgeVariant(status: UserStatus) {
-  return status === "Verified" ? "default" : "secondary"
+  return status === "Verified" ? "outline" : "secondary"
 }
 
 function roleBadgeVariant(role: UserRole) {
@@ -522,7 +522,9 @@ export default function ManageUsersPage() {
                   {isLoading ? (
                     <TableRow>
                       <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                        <Spinner/>
+                        <div className="flex justify-center items-center w-full">
+                          <Spinner/>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : error ? (
@@ -556,10 +558,10 @@ export default function ManageUsersPage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
+                          <Badge className={user.role === "ADMIN" ? "bg-red-500 text-white" : user.role === "STAFF" ? "bg-blue-500 text-white" : "bg-primary text-secondary"} variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusBadgeVariant(statusFromUser(user))}>
+                          <Badge className={statusFromUser(user) === "Verified" ? 'border-green-400 text-green-400' : 'border-red-400 text-red-400'} variant={statusBadgeVariant(statusFromUser(user))}>
                             {statusFromUser(user)}
                           </Badge>
                         </TableCell>

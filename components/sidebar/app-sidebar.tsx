@@ -74,7 +74,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <hr />
         <NavMain items={navbarMenu.navMain} />
+        <hr />
         <RoleNav role={session?.user?.role} />
       </SidebarContent>
       <SidebarFooter>
