@@ -2,6 +2,7 @@
 
 import { SectionNavBar } from "@/components/sidebar/section-navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Spinner } from "@/components/ui/spinner";
 import { User } from "@/generated/prisma/client";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,8 @@ import { useSession } from "@/lib/auth-client";
 
 export default function Page() {
   const [rankings, setRankings] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const { data: session } = useSession();
   const totalParticipants = rankings.length;
   
@@ -17,6 +20,7 @@ export default function Page() {
   const userRankData = userRank >= 0 ? rankings[userRank] : null;
 
   useEffect(() => {
+    setLoading(true);
     const fetchRankings = async () => {
       try {
         const response = await fetch("/api/rankings");
@@ -26,6 +30,7 @@ export default function Page() {
         const data: User[] = await response.json();
         const sorted = data.sort((a, b) => (b.score || 0) - (a.score || 0));
         setRankings(sorted);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching rankings:", error);
       }
@@ -34,6 +39,16 @@ export default function Page() {
     fetchRankings();
   }, []);
 
+  if (loading) {
+    return (
+      <main className="w-full h-full flex flex-col rounded-xl bg-background">
+        <SectionNavBar items={[{ label: "Ranking" }]} />
+        <div className="container flex flex-1 my-7 mx-auto px-4 justify-center items-center">
+          <Spinner />
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
       <SectionNavBar items={[{ label: "Ranking" }]} />
@@ -62,7 +77,7 @@ export default function Page() {
                   <AvatarFallback>{userRankData.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-semibold text-base">{userRankData.name} (You)</div>
+                  <div className="font-semibold text-base">{userRankData.name}</div>
                   <div className="text-sm text-muted-foreground">Your Ranking</div>
                 </div>
               </div>

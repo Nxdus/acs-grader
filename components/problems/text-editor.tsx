@@ -1,6 +1,6 @@
 "use client"
 
-import MonacoEditor from "@monaco-editor/react";
+import dynamic from "next/dynamic";
 
 import {
     Select,
@@ -26,10 +26,15 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+    ssr: false,
+});
+
 type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 
 type TextEditorProps = {
     slug: string;
+    contestSlug?: string;
     allowedLanguageIds?: number[];
     initialCode?: string;
 };
@@ -74,10 +79,30 @@ public class Main {
 }`;
   }
 
+  // JavaScript (Node.js)
+  if (languageId === 63 || languageId === 93) {
+    return `const fs = require("fs");
+
+const input = fs.readFileSync(0, "utf8").trim();
+// Write your code here
+
+`;
+  }
+
+  // Python
+  if (languageId === 71 || languageId === 70) {
+    return `import sys
+
+data = sys.stdin.read().strip()
+# Write your code here
+
+`;
+  }
+
   return "";
 };
 
-export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {
+export default function TextEditor({ slug, contestSlug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
@@ -282,7 +307,6 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
 
         const isAllowed = visibleLanguages.some((item) => String(item.id) === languageId);
         if (!isAllowed) {
-            // ถ้า languageId ปัจจุบันไม่อยู่ใน allowed languages ให้เลือก language แรก
             setLanguageId(String(visibleLanguages[0].id));
             return;
         }
@@ -300,8 +324,8 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
             console.error("Failed to load saved code:", err);
         }
 
-        // Load template สำหรับภาษาที่เลือก
         const template = getLanguageTemplate(Number(languageId));
+
         if (template) {
             setCode(template);
         }
@@ -357,10 +381,11 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                     languageId: Number(languageId),
                     language: selectedLanguage.name,
                     code,
+                    contestSlug: contestSlug?.trim() || undefined,
                 }),
             });
-
-            const data = await response.json();
+            const rawText = await response.text();
+            const data = rawText ? (JSON.parse(rawText) as { error?: string }) : {};
 
             if (!response.ok) {
                 const errorMessage =
@@ -483,6 +508,26 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                                         Memory Usage: {formatMemory(submissionStatus.memoryUsed)}
                                     </Badge>
                                 ) : null}
+                                <div className="flex justify-center items-center text-xs">
+                                    {status === "saving" &&
+                                        <div className="flex items-center">
+                                            <Spinner className="mr-1" />
+                                            Saving...
+                                        </div>
+                                    }
+                                    {status === "saved" &&
+                                        <div className="flex items-center">
+                                            <Check size={12} className="mr-1 text-green-500" />
+                                            Saved
+                                        </div>
+                                    }
+                                    {status === "error" &&
+                                        <div className="flex items-center">
+                                            <X size={12} className="mr-1" />
+                                            Save failed
+                                        </div>
+                                    }
+                                </div>
                             </>
                         ) : (
                             <div className="flex gap-4">

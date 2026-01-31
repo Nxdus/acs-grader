@@ -1,0 +1,44 @@
+"use client"
+
+import { FilePenLine, Trophy, Users } from "lucide-react"
+
+import { NavMain } from "@/components/sidebar/nav-main"
+
+type RoleNavProps = {
+  role?: string | null
+}
+
+export function RoleNav({ role }: RoleNavProps) {
+  const isStaff = role === "STAFF" || role === "ADMIN"
+  const isAdmin = role === "ADMIN"
+
+  const items = [
+    ...(isStaff
+      ? [
+          {
+            title: "Manage Problems",
+            url: "/staff/problems",
+            icon: FilePenLine,
+          },
+          {
+            title: "Manage Contests",
+            url: "/staff/contests",
+            icon: Trophy,
+          },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            title: "Manage Users",
+            url: "/admin/users",
+            icon: Users,
+          },
+        ]
+      : []),
+  ]
+
+  if (items.length === 0) return null
+
+  return <NavMain items={items} />
+}

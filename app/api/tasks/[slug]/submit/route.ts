@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { computeScore } from "@/lib/scoring";
 
 type RouteContext = {
     params: { slug: string } | Promise<{ slug: string }>;
@@ -10,6 +11,7 @@ type SubmissionPayload = {
     languageId?: number;
     language?: string;
     code?: string;
+    contestSlug?: string;
 };
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -181,6 +183,9 @@ export async function POST(request: Request, { params }: RouteContext) {
         ? payload.language.trim()
         : "";
     const code = isNonEmptyString(payload.code) ? payload.code.trim() : "";
+    const contestSlug = isNonEmptyString(payload.contestSlug)
+        ? payload.contestSlug.trim()
+        : "";
     const languageId = Number(payload.languageId);
 
     if (!userId || !language || !code) {
@@ -207,6 +212,49 @@ export async function POST(request: Request, { params }: RouteContext) {
             { error: "Task not found." },
             { status: 404 },
         );
+    }
+
+    let submissionContext:
+        | { type: "problem" }
+        | { type: "contest"; contestId: number; maxScore: number } = {
+        type: "problem",
+    };
+
+    if (contestSlug) {
+        const contest = await prisma.contest.findUnique({
+            where: { slug: contestSlug },
+            select: { id: true },
+        });
+
+        if (!contest) {
+            return NextResponse.json(
+                { error: "Contest not found." },
+                { status: 404 },
+            );
+        }
+
+        const contestProblem = await prisma.contestProblem.findUnique({
+            where: {
+                contestId_problemId: {
+                    contestId: contest.id,
+                    problemId: problem.id,
+                },
+            },
+            select: { contestId: true, maxScore: true },
+        });
+
+        if (!contestProblem) {
+            return NextResponse.json(
+                { error: "Problem is not part of this contest." },
+                { status: 400 },
+            );
+        }
+
+        submissionContext = {
+            type: "contest",
+            contestId: contest.id,
+            maxScore: contestProblem.maxScore ?? 0,
+        };
     }
 
     const allowedLanguageIds = problem.allowedLanguageIds ?? [];
@@ -238,6 +286,10 @@ export async function POST(request: Request, { params }: RouteContext) {
         data: {
             userId,
             problemId: problem.id,
+            contestId:
+                submissionContext.type === "contest"
+                    ? submissionContext.contestId
+                    : null,
             languageId,
             language,
             code,
@@ -388,6 +440,16 @@ export async function POST(request: Request, { params }: RouteContext) {
         null,
     );
 
+    const computedScore =
+        submissionContext.type === "contest" && finalStatus === "ACCEPTED"
+            ? computeScore(
+                submissionContext.maxScore,
+                executionTime,
+                memoryUsed,
+                languageId,
+            )
+            : 0;
+
     await prisma.$transaction([
         prisma.submissionResult.createMany({
             data: submissionResults.map((result) => ({
@@ -404,6 +466,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                 status: finalStatus,
                 executionTime,
                 memoryUsed,
+                score: computedScore,
             },
         }),
         prisma.problem.update({
@@ -415,11 +478,68 @@ export async function POST(request: Request, { params }: RouteContext) {
                     : {}),
             },
         }),
+        ...(submissionContext.type === "contest"
+            ? [
+                prisma.contestParticipant.upsert({
+                    where: {
+                        contestId_userId: {
+                            contestId: submissionContext.contestId,
+                            userId,
+                        },
+                    },
+                    update: {
+                        lastSubmitAt: new Date(),
+                    },
+                    create: {
+                        contestId: submissionContext.contestId,
+                        userId,
+                        lastSubmitAt: new Date(),
+                    },
+                }),
+            ]
+            : []),
     ]);
+
+    if (submissionContext.type === "contest") {
+        const bestByProblem = await prisma.submission.groupBy({
+            by: ["problemId"],
+            where: {
+                contestId: submissionContext.contestId,
+                userId,
+                status: "ACCEPTED",
+            },
+            _max: {
+                score: true,
+            },
+        });
+
+        const totalScore = bestByProblem.reduce((sum, item) => {
+            const bestScore = item._max.score ?? 0;
+            return sum + bestScore;
+        }, 0);
+
+        await prisma.contestParticipant.update({
+            where: {
+                contestId_userId: {
+                    contestId: submissionContext.contestId,
+                    userId,
+                },
+            },
+            data: {
+                totalScore,
+            },
+        });
+    }
 
     return NextResponse.json({
         id: submission.id,
         status: finalStatus,
         createdAt: submission.createdAt,
+        submissionType: submissionContext.type,
+        contestId:
+            submissionContext.type === "contest"
+                ? submissionContext.contestId
+                : undefined,
+        score: computedScore,
     });
 }

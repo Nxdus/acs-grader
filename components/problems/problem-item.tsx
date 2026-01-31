@@ -50,6 +50,7 @@ function ProblemItem({
     : "0.00";
   const isSolved = problem.submissionStatus === "ACCEPTED";
   const showProgress = typeof problem.hasSubmission === "boolean";
+  console.log(problem);
 
   return (
     <Link href={prefix + "/" + problem.slug}>
@@ -72,7 +73,7 @@ function ProblemItem({
                       : "border-muted-foreground/40 border-0 text-transparent"
                   }
                 >
-                  Done
+                  Accepted
                 </Badge>
               ) : null}
               <span>{successRate}%</span>

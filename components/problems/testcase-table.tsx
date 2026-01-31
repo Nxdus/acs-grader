@@ -194,14 +194,14 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
                             <div>No results yet.</div>
                         ) : (
                             <div className="space-y-3">
-                                {rows.map((row) => {
+                                {rows.map((row, index) => {
                                     const status = statusById[row.id]
                                     if (!status) return null
                                     return (
                                         <div key={row.id}>
                                             <div className="mb-2 flex items-center justify-between">
                                                 <span className="text-muted-foreground">
-                                                    $ testcase #{row.id}
+                                                    $ testcase #{index + 1}
                                                 </span>
                                                 <Badge
                                                     className={cn(

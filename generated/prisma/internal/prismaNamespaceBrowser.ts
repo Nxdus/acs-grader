@@ -60,7 +60,10 @@ export const ModelName = {
   Submission: 'Submission',
   SubmissionResult: 'SubmissionResult',
   Tag: 'Tag',
-  ProblemTag: 'ProblemTag'
+  ProblemTag: 'ProblemTag',
+  Contest: 'Contest',
+  ContestProblem: 'ContestProblem',
+  ContestParticipant: 'ContestParticipant'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -175,11 +178,13 @@ export const SubmissionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   problemId: 'problemId',
+  contestId: 'contestId',
   languageId: 'languageId',
   code: 'code',
   status: 'status',
   executionTime: 'executionTime',
   memoryUsed: 'memoryUsed',
+  score: 'score',
   language: 'language',
   createdAt: 'createdAt'
 } as const
@@ -213,6 +218,45 @@ export const ProblemTagScalarFieldEnum = {
 } as const
 
 export type ProblemTagScalarFieldEnum = (typeof ProblemTagScalarFieldEnum)[keyof typeof ProblemTagScalarFieldEnum]
+
+
+export const ContestScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  title: 'title',
+  description: 'description',
+  startAt: 'startAt',
+  endAt: 'endAt',
+  isPublic: 'isPublic',
+  scoringType: 'scoringType',
+  freezeAt: 'freezeAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ContestScalarFieldEnum = (typeof ContestScalarFieldEnum)[keyof typeof ContestScalarFieldEnum]
+
+
+export const ContestProblemScalarFieldEnum = {
+  contestId: 'contestId',
+  problemId: 'problemId',
+  order: 'order',
+  maxScore: 'maxScore'
+} as const
+
+export type ContestProblemScalarFieldEnum = (typeof ContestProblemScalarFieldEnum)[keyof typeof ContestProblemScalarFieldEnum]
+
+
+export const ContestParticipantScalarFieldEnum = {
+  contestId: 'contestId',
+  userId: 'userId',
+  totalScore: 'totalScore',
+  penalty: 'penalty',
+  rank: 'rank',
+  lastSubmitAt: 'lastSubmitAt'
+} as const
+
+export type ContestParticipantScalarFieldEnum = (typeof ContestParticipantScalarFieldEnum)[keyof typeof ContestParticipantScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -89,3 +89,18 @@ export type Tag = Prisma.TagModel
  * 
  */
 export type ProblemTag = Prisma.ProblemTagModel
+/**
+ * Model Contest
+ * 
+ */
+export type Contest = Prisma.ContestModel
+/**
+ * Model ContestProblem
+ * 
+ */
+export type ContestProblem = Prisma.ContestProblemModel
+/**
+ * Model ContestParticipant
+ * 
+ */
+export type ContestParticipant = Prisma.ContestParticipantModel
