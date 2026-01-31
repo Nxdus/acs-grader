@@ -39,28 +39,42 @@ const STORAGE_KEY = "autosave"; // Single key for all autosaved code
 
 const getLanguageTemplate = (languageId: number): string => {
 
-    if (languageId === 54) {
-        return `#include <iostream>
+  // C++ (GCC)
+  if (languageId === 54) {
+    return `#include <iostream>
 using namespace std;
 
 int main() {
     // Write your code here
-    
+
     return 0;
 }`;
-    }
+  }
 
-    if (languageId === 50) {
-        return `#include <stdio.h>
+  // C (GCC)
+  if (languageId === 50) {
+    return `#include <stdio.h>
 
 int main() {
     // Write your code here
-    
+
     return 0;
 }`;
-    }
+  }
 
-    return "";
+  // Java (OpenJDK 13.0.1)
+  if (languageId === 62) {
+    return `import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // Write your code here
+        
+    }
+}`;
+  }
+
+  return "";
 };
 
 export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {

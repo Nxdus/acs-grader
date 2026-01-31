@@ -103,9 +103,18 @@ export default function Problems() {
                         </div>
                     ) : (
                         <ItemGroup className="mt-4 gap-0 has-[[data-size=sm]]:gap-0 has-[[data-size=xs]]:gap-0">
-                            {data.map((p, index) => (
-                                <ProblemItem className={index % 2 == 0 ? "bg-muted" : "bg-background"} key={p.id} problem={p} order={index + 1} />
-                            ))}
+                            {data
+                                .filter((p) => p.contestProblems.length === 0)
+                                .map((p, index) => (
+                                    <ProblemItem
+                                        key={p.id}
+                                        className={index % 2 === 0 ? "bg-muted" : "bg-background"}
+                                        prefix="/problems"
+                                        problem={p}
+                                        order={index + 1}
+                                    />
+                                ))}
+
                         </ItemGroup>
                     )}
                 </div>
