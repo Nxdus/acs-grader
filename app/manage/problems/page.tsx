@@ -66,6 +66,7 @@ type ProblemRecord = {
   successCount: number
   tags: string[]
   testCaseCount: number
+  contests: { id: number; slug: string; title: string }[]
   createdAt: string
   updatedAt: string
 }
@@ -384,6 +385,7 @@ export default function ManageProblemsPage() {
                         <SortIcon active={sortKey === "difficulty"} direction={sortDirection} />
                       </button>
                     </TableHead>
+                    <TableHead>Contest</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tags</TableHead>
                     <TableHead>Testcases</TableHead>
@@ -402,7 +404,7 @@ export default function ManageProblemsPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         <div className="flex justify-center items-center w-full">
                           <Spinner />
                         </div>
@@ -410,13 +412,13 @@ export default function ManageProblemsPage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         {error}
                       </TableCell>
                     </TableRow>
                   ) : problems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         No problems found. Adjust filters or create a new problem.
                       </TableCell>
                     </TableRow>
@@ -433,6 +435,11 @@ export default function ManageProblemsPage() {
                           <Badge className={getDifficultyMeta(problem.difficulty).className} variant={difficultyBadgeVariant(problem.difficulty)}>
                             {getDifficultyMeta(problem.difficulty).label}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {problem.contests.length > 0
+                            ? problem.contests.map((contest) => contest.title).join(", ")
+                            : "None"}
                         </TableCell>
                         <TableCell>
                           <Badge className={statusBadgeClassname(problem.isPublished)} variant="outline">

@@ -123,6 +123,17 @@ export async function GET(request: Request) {
             testCases: {
               select: { id: true },
             },
+            contestProblems: {
+              select: {
+                contest: {
+                  select: {
+                    id: true,
+                    slug: true,
+                    title: true,
+                  },
+                },
+              },
+            },
           },
         }),
         prisma.problem.count({ where: { ...where, isPublished: true } }),
@@ -141,6 +152,7 @@ export async function GET(request: Request) {
       updatedAt: problem.updatedAt,
       tags: problem.tags.map((entry) => entry.tag.name),
       testCaseCount: problem.testCases.length,
+      contests: problem.contestProblems.map((entry) => entry.contest),
     }));
 
     return NextResponse.json({
@@ -179,6 +191,7 @@ export async function POST(request: Request) {
       typeof body?.outputFormat === "string" ? body.outputFormat : null;
     const isPublished =
       typeof body?.isPublished === "boolean" ? body.isPublished : true;
+    const contestIdValue = body?.contestId;
 
     if (!title || !slug) {
       return NextResponse.json(
@@ -200,44 +213,74 @@ export async function POST(request: Request) {
     const tags = normalizeTags(body?.tags);
     const testCases = normalizeTestCases(body?.testCases);
 
-    const problem = await prisma.problem.create({
-      data: {
-        slug,
-        title,
-        description,
-        difficulty: difficulty as Difficulty,
-        constraints,
-        inputFormat,
-        outputFormat,
-        allowedLanguageIds,
-        isPublished,
-        tags: {
-          create: tags.map((name) => ({
-            tag: {
-              connectOrCreate: {
-                where: { name },
-                create: { name },
+    const contestId =
+      contestIdValue === null
+        ? null
+        : contestIdValue === undefined
+          ? undefined
+          : Number(contestIdValue);
+
+    if (contestId !== null && contestId !== undefined && !Number.isFinite(contestId)) {
+      return NextResponse.json({ error: "Invalid contest id." }, { status: 400 });
+    }
+
+    const problem = await prisma.$transaction(async (tx) => {
+      const created = await tx.problem.create({
+        data: {
+          slug,
+          title,
+          description,
+          difficulty: difficulty as Difficulty,
+          constraints,
+          inputFormat,
+          outputFormat,
+          allowedLanguageIds,
+          isPublished,
+          tags: {
+            create: tags.map((name) => ({
+              tag: {
+                connectOrCreate: {
+                  where: { name },
+                  create: { name },
+                },
               },
-            },
-          })),
+            })),
+          },
+          testCases: {
+            create: testCases.map((testCase) => ({
+              input: testCase.input,
+              output: testCase.output,
+              isSample: testCase.isSample,
+            })),
+          },
         },
-        testCases: {
-          create: testCases.map((testCase) => ({
-            input: testCase.input,
-            output: testCase.output,
-            isSample: testCase.isSample,
-          })),
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          difficulty: true,
+          isPublished: true,
+          createdAt: true,
+          updatedAt: true,
         },
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        difficulty: true,
-        isPublished: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      });
+
+      if (contestId && Number.isFinite(contestId)) {
+        const maxOrder = await tx.contestProblem.aggregate({
+          where: { contestId },
+          _max: { order: true },
+        });
+
+        await tx.contestProblem.create({
+          data: {
+            contestId,
+            problemId: created.id,
+            order: (maxOrder._max.order ?? 0) + 1,
+          },
+        });
+      }
+
+      return created;
     });
 
     return NextResponse.json(problem, { status: 201 });
