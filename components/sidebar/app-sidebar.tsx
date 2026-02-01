@@ -5,6 +5,7 @@ import { ChartNoAxesColumn, Grip, House, Info, Trophy } from "lucide-react"
 
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavUser, NavUserSkeleton } from "@/components/sidebar/nav-user"
+import { RoleNav } from "@/components/sidebar/role-nav"
 import {
   Sidebar,
   SidebarContent,
@@ -73,7 +74,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <hr />
         <NavMain items={navbarMenu.navMain} />
+        <hr />
+        <RoleNav role={session?.user?.role} />
       </SidebarContent>
       <SidebarFooter>
         {isPending ? <NavUserSkeleton /> : session?.user ? <NavUser user={session.user} /> : null}

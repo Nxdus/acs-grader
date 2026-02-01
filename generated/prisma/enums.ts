@@ -42,3 +42,11 @@ export const SubmissionStatus = {
 } as const
 
 export type SubmissionStatus = (typeof SubmissionStatus)[keyof typeof SubmissionStatus]
+
+
+export const ContestScoringType = {
+  ACM: 'ACM',
+  SCORE: 'SCORE'
+} as const
+
+export type ContestScoringType = (typeof ContestScoringType)[keyof typeof ContestScoringType]

@@ -148,20 +148,24 @@ model Submission {
   id         Int    @id @default(autoincrement())
   userId     String
   problemId  Int
+  contestId  Int?
   languageId Int
 
   code          String
   status        SubmissionStatus @default(PENDING)
   executionTime Float?
   memoryUsed    Float?
+  score         Int?             @default(0)
 
   user     User               @relation(fields: [userId], references: [id])
   problem  Problem            @relation(fields: [problemId], references: [id])
+  contest  Contest?           @relation(fields: [contestId], references: [id])
   language String
   results  SubmissionResult[]
 
   createdAt DateTime @default(now())
 
+  @@index([contestId, userId, problemId])
   @@map("submission")
 }
 
@@ -213,6 +217,7 @@ model Contest {
 
   problems     ContestProblem[]
   participants ContestParticipant[]
+  submissions  Submission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

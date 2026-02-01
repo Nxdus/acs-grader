@@ -209,6 +209,17 @@ export type EnumDifficultyWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumDifficultyFilter<$PrismaModel>
 }
 
+export type IntNullableFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.IntFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedIntNullableFilter<$PrismaModel> | number | null
+}
+
 export type EnumSubmissionStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.SubmissionStatus | Prisma.EnumSubmissionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.SubmissionStatus[] | Prisma.ListEnumSubmissionStatusFieldRefInput<$PrismaModel>
@@ -225,6 +236,22 @@ export type FloatNullableFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
+}
+
+export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.IntFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
 }
 
 export type EnumSubmissionStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -251,6 +278,23 @@ export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatNullableFilter<$PrismaModel>
   _min?: Prisma.NestedFloatNullableFilter<$PrismaModel>
   _max?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+}
+
+export type EnumContestScoringTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContestScoringType | Prisma.EnumContestScoringTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel> | $Enums.ContestScoringType
+}
+
+export type EnumContestScoringTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContestScoringType | Prisma.EnumContestScoringTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContestScoringTypeWithAggregatesFilter<$PrismaModel> | $Enums.ContestScoringType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -479,6 +523,22 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
 }
 
+export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.IntFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.IntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
+}
+
 export type NestedEnumSubmissionStatusWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.SubmissionStatus | Prisma.EnumSubmissionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.SubmissionStatus[] | Prisma.ListEnumSubmissionStatusFieldRefInput<$PrismaModel>
@@ -503,6 +563,23 @@ export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatNullableFilter<$PrismaModel>
   _min?: Prisma.NestedFloatNullableFilter<$PrismaModel>
   _max?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumContestScoringTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContestScoringType | Prisma.EnumContestScoringTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel> | $Enums.ContestScoringType
+}
+
+export type NestedEnumContestScoringTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContestScoringType | Prisma.EnumContestScoringTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContestScoringType[] | Prisma.ListEnumContestScoringTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContestScoringTypeWithAggregatesFilter<$PrismaModel> | $Enums.ContestScoringType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumContestScoringTypeFilter<$PrismaModel>
 }
 
 

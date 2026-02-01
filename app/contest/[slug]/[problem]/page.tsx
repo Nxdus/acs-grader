@@ -151,7 +151,10 @@ export default async function Page({
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel maxSize="80%" minSize="40%">
-          <TextEditor slug={problem} allowedLanguageIds={task.problem.allowedLanguageIds ?? []} />
+          <TextEditor
+            slug={problem}
+            allowedLanguageIds={task.problem.allowedLanguageIds ?? []}
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     </main>
