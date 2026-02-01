@@ -375,7 +375,14 @@ export default function ManageProblemEditorPage() {
 
   return (
     <main className="w-full h-full flex flex-col bg-background">
-      <SectionNavBar items={[{ label: "Problems", href: "/manage/problems" }, { label: state.title || "Editor"}]} />
+      <SectionNavBar items={
+        [
+          { label: "Manage" },
+          { label: "Problems", href: "/manage/problems" },
+          { label: state.title || "Editor" },
+        ]
+      }
+      />
 
       <div className="flex flex-col gap-4 px-4 py-2">
         <div className="flex items-end justify-between gap-4 overflow-x-auto py-2">

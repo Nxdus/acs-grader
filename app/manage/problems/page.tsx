@@ -99,8 +99,22 @@ function formatTime(value: string) {
   })
 }
 
-function statusBadgeVariant(isPublished: boolean) {
-  return isPublished ? "default" : "secondary"
+const getDifficultyMeta = (difficulty: Difficulty) => {
+  switch (difficulty) {
+    case "EASY":
+      return { label: "Easy", className: "bg-green-500 text-white" };
+    case "MEDIUM":
+      return { label: "Med.", className: "bg-yellow-500 text-white" };
+    case "HARD":
+      return { label: "Hard", className: "bg-red-500 text-white" };
+    default:
+      return { label: difficulty, className: "bg-red-500 text-white" };
+  }
+};
+
+function statusBadgeClassname(isPublished: boolean) {
+  if (isPublished) return "border-green-400 text-green-400";
+  return "border-blue-400 text-blue-400";
 }
 
 function difficultyBadgeVariant(difficulty: Difficulty) {
@@ -253,7 +267,13 @@ export default function ManageProblemsPage() {
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
-      <SectionNavBar items={[{ label: "Problems" }]} />
+      <SectionNavBar items={
+        [
+          { label: "Manage" },
+          { label: "Problems", href: "/manage/problems" },
+        ]
+      }
+      />
 
       <div className="container mx-auto flex flex-col gap-6 px-4 py-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -410,12 +430,12 @@ export default function ManageProblemsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={difficultyBadgeVariant(problem.difficulty)}>
-                            {problem.difficulty}
+                          <Badge className={getDifficultyMeta(problem.difficulty).className} variant={difficultyBadgeVariant(problem.difficulty)}>
+                            {getDifficultyMeta(problem.difficulty).label}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusBadgeVariant(problem.isPublished)}>
+                          <Badge className={statusBadgeClassname(problem.isPublished)} variant="outline">
                             {problem.isPublished ? "Published" : "Draft"}
                           </Badge>
                         </TableCell>
