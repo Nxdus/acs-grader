@@ -37,6 +37,7 @@ type TextEditorProps = {
     allowedLanguageIds?: number[];
     initialCode?: string;
     contestSlug?: string;
+    allowSubmit?: boolean;
 };
 
 const AUTOSAVE_DELAY = 1500; // ms
@@ -44,9 +45,9 @@ const STORAGE_KEY = "autosave"; // Single key for all autosaved code
 
 const getLanguageTemplate = (languageId: number): string => {
 
-  // C++ (GCC)
-  if (languageId === 54) {
-    return `#include <iostream>
+    // C++ (GCC)
+    if (languageId === 54) {
+        return `#include <iostream>
 using namespace std;
 
 int main() {
@@ -54,22 +55,22 @@ int main() {
 
     return 0;
 }`;
-  }
+    }
 
-  // C (GCC)
-  if (languageId === 50) {
-    return `#include <stdio.h>
+    // C (GCC)
+    if (languageId === 50) {
+        return `#include <stdio.h>
 
 int main() {
     // Write your code here
 
     return 0;
 }`;
-  }
+    }
 
-  // Java (OpenJDK 13.0.1)
-  if (languageId === 62) {
-    return `import java.util.*;
+    // Java (OpenJDK 13.0.1)
+    if (languageId === 62) {
+        return `import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -77,32 +78,32 @@ public class Main {
         
     }
 }`;
-  }
+    }
 
-  // JavaScript (Node.js)
-  if (languageId === 63 || languageId === 93) {
-    return `const fs = require("fs");
+    // JavaScript (Node.js)
+    if (languageId === 63 || languageId === 93) {
+        return `const fs = require("fs");
 
 const input = fs.readFileSync(0, "utf8").trim();
 // Write your code here
 
 `;
-  }
+    }
 
-  // Python
-  if (languageId === 71 || languageId === 70) {
-    return `import sys
+    // Python
+    if (languageId === 71 || languageId === 70) {
+        return `import sys
 
 data = sys.stdin.read().strip()
 # Write your code here
 
 `;
-  }
+    }
 
-  return "";
+    return "";
 };
 
-export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "", contestSlug }: TextEditorProps) {
+export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "", contestSlug, allowSubmit = true }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
@@ -162,19 +163,19 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
             setStatus("saving");
 
             await new Promise((resolve) => setTimeout(resolve, 500));
-            
+
             // Load existing data or create new object
             const existing = localStorage.getItem(STORAGE_KEY);
             const allData = existing ? JSON.parse(existing) : {};
-            
+
             // Initialize slug object if not exists
             if (!allData[slug]) {
                 allData[slug] = {};
             }
-            
+
             // Update code for current language
             allData[slug][languageId] = value;
-            
+
             // Save back to localStorage
             localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
 
@@ -185,7 +186,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
             setStatus("error");
         }
     }, [languageId, slug]);
-    
+
     const handleChange = (value?: string) => {
         const newCode = value ?? "";
         setCode(newCode);
@@ -548,14 +549,16 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                         >
                             {isRunning ? <Spinner /> : <Play />}
                         </Button>
-                        <Button
-                            variant={"default"}
-                            onClick={handleSubmit}
-                            disabled={!canSubmit || isSubmitting}
-                            className="min-w-16"
-                        >
-                            {isSubmitting ? <Spinner /> : "Submit"}
-                        </Button>
+                        { allowSubmit &&
+                            <Button
+                                variant={"default"}
+                                onClick={handleSubmit}
+                                disabled={!canSubmit || isSubmitting}
+                                className="min-w-16"
+                            >
+                                {isSubmitting ? <Spinner /> : "Submit"}
+                            </Button>
+                        }
                     </ButtonGroup>
                     <Select value={languageId} onValueChange={setLanguageId}>
                         <SelectTrigger className="w-full sm:w-48" >

@@ -447,8 +447,30 @@ export async function POST(request: Request, { params }: RouteContext) {
         )
       : 0;
 
-  await prisma.$transaction([
-    prisma.submissionResult.createMany({
+  await prisma.$transaction(async (tx) => {
+    const hasSubmitted = await tx.submission.findFirst({
+      where: { userId, problemId: problem.id, id: { not: submission.id } },
+      select: { id: true },
+    });
+
+    let hasAccepted = false;
+    if (finalStatus === "ACCEPTED") {
+      hasAccepted = !!(await tx.submission.findFirst({
+        where: {
+          userId,
+          problemId: problem.id,
+          status: "ACCEPTED",
+          id: { not: submission.id },
+        },
+        select: { id: true },
+      }));
+    }
+
+    const increaseParticipantCount = hasSubmitted === null ? 1 : 0;
+    const increaseSuccessCount =
+      finalStatus === "ACCEPTED" && !hasAccepted ? 1 : 0;
+
+    await tx.submissionResult.createMany({
       data: submissionResults.map((result) => ({
         submissionId: submission.id,
         testCaseId: result.testCaseId,
@@ -456,8 +478,9 @@ export async function POST(request: Request, { params }: RouteContext) {
         passed: result.passed,
         runtime: result.runtime,
       })),
-    }),
-    prisma.submission.update({
+    });
+
+    await tx.submission.update({
       where: { id: submission.id },
       data: {
         status: finalStatus,
@@ -465,37 +488,37 @@ export async function POST(request: Request, { params }: RouteContext) {
         memoryUsed,
         score: computedScore,
       },
-    }),
-    prisma.problem.update({
+    });
+
+    await tx.problem.update({
       where: { id: problem.id },
       data: {
-        participantCount: { increment: 1 },
+        participantCount: { increment: increaseParticipantCount },
         ...(finalStatus === "ACCEPTED"
-          ? { successCount: { increment: 1 } }
+          ? { successCount: { increment: increaseSuccessCount } }
           : {}),
       },
-    }),
-    ...(submissionContext.type === "contest"
-      ? [
-          prisma.contestParticipant.upsert({
-            where: {
-              contestId_userId: {
-                contestId: submissionContext.contestId,
-                userId,
-              },
-            },
-            update: {
-              lastSubmitAt: new Date(),
-            },
-            create: {
-              contestId: submissionContext.contestId,
-              userId,
-              lastSubmitAt: new Date(),
-            },
-          }),
-        ]
-      : []),
-  ]);
+    });
+
+    if (submissionContext.type === "contest") {
+      await tx.contestParticipant.upsert({
+        where: {
+          contestId_userId: {
+            contestId: submissionContext.contestId,
+            userId,
+          },
+        },
+        update: {
+          lastSubmitAt: new Date(),
+        },
+        create: {
+          contestId: submissionContext.contestId,
+          userId,
+          lastSubmitAt: new Date(),
+        },
+      });
+    }
+  });
 
   if (submissionContext.type === "contest") {
     const bestByProblem = await prisma.submission.groupBy({
