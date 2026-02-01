@@ -154,6 +154,7 @@ export default async function Page({
           <TextEditor
             slug={problem}
             allowedLanguageIds={task.problem.allowedLanguageIds ?? []}
+            contestSlug={contestObj.slug}
           />
         </ResizablePanel>
       </ResizablePanelGroup>

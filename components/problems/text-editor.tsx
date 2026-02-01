@@ -22,6 +22,9 @@ import { Check, Play, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
+import { Badge } from "../ui/badge";
+import { cn } from "@/lib/utils";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
     ssr: false,
@@ -33,6 +36,7 @@ type TextEditorProps = {
     slug: string;
     allowedLanguageIds?: number[];
     initialCode?: string;
+    contestSlug?: string;
 };
 
 const AUTOSAVE_DELAY = 1500; // ms
@@ -98,16 +102,53 @@ data = sys.stdin.read().strip()
   return "";
 };
 
-export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "" }: TextEditorProps) {
+export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "", contestSlug }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
     const [code, setCode] = useState(initialCode);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
+    const { data: session } = useSession();
+    const [submissionStatus, setSubmissionStatus] = useState<{
+        hasSubmission: boolean;
+        status?: string;
+        executionTime?: number | null;
+        memoryUsed?: number | null;
+        createdAt?: string;
+    } | null>(null);
 
     const saveTimer = useRef<NodeJS.Timeout | null>(null);
     const [status, setStatus] = useState<SaveStatus>("idle");
 
+    const statusLabel = (status?: string) => {
+        switch (status) {
+            case "ACCEPTED":
+                return "Accepted";
+            case "WRONG_ANSWER":
+                return "Wrong Answer";
+            case "TIME_LIMIT_EXCEEDED":
+                return "Time Limit";
+            case "RUNTIME_ERROR":
+                return "Runtime Error";
+            case "COMPILATION_ERROR":
+                return "Compilation Error";
+            case "INTERNAL_ERROR":
+                return "Internal Error";
+            case "EXEC_FORMAT_ERROR":
+                return "Exec Format Error";
+            case "MEMORY_LIMIT_EXCEEDED":
+                return "Memory Limit";
+            case "OUTPUT_LIMIT_EXCEEDED":
+                return "Output Limit";
+            case "STORAGE_LIMIT_EXCEEDED":
+                return "Storage Limit";
+            case "PENDING":
+                return "Pending";
+            default:
+                return "Unknown";
+        }
+    };
 
     useEffect(() => {
         // Set default language if allowedLanguageIds includes 50
@@ -160,6 +201,16 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         }, AUTOSAVE_DELAY);
     };
 
+    const formatSeconds = (value?: number | null) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return null;
+        return `${value.toFixed(3)}s`;
+    };
+
+    const formatMemory = (value?: number | null) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return null;
+        if (value >= 1024) return `${(value / 1024).toFixed(2)} MB`;
+        return `${value.toFixed(0)} KB`;
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -286,6 +337,15 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
 
     const { theme } = useTheme()
 
+    const canSubmit = useMemo(() => {
+        return Boolean(
+            session?.user?.id &&
+            code.trim().length > 0 &&
+            selectedLanguage &&
+            languageId,
+        );
+    }, [code, languageId, selectedLanguage, session?.user?.id]);
+
     const canRun = useMemo(() => {
         return Boolean(
             code.trim().length > 0 &&
@@ -294,6 +354,80 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         );
     }, [code, languageId, selectedLanguage]);
 
+    const loadSubmissionStatus = useCallback(async (userId: string) => {
+        try {
+            const response = await fetch(
+                `/api/tasks/${slug}/status?userId=${encodeURIComponent(userId)}`,
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                setSubmissionStatus(null);
+                return;
+            }
+            setSubmissionStatus(data);
+        } catch (error) {
+            console.error(error);
+        }
+    }, [slug]);
+
+    useEffect(() => {
+        if (!session?.user?.id) {
+            setSubmissionStatus(null);
+            return;
+        }
+        void loadSubmissionStatus(session.user.id);
+    }, [loadSubmissionStatus, session?.user?.id]);
+
+    const handleSubmit = async () => {
+        if (!session?.user?.id) {
+            toast.error("Please sign in before submitting.");
+            return;
+        }
+
+        if (!selectedLanguage || !languageId) {
+            toast.error("Please select a language.");
+            return;
+        }
+
+        if (!code.trim()) {
+            toast.error("Please enter your code.");
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent("testcase-run-start"));
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch(`/api/tasks/${slug}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    languageId: Number(languageId),
+                    language: selectedLanguage.name,
+                    contestSlug,
+                    code,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMessage =
+                    typeof data?.error === "string" ? data.error : "Submission failed.";
+                toast.error(errorMessage);
+                return;
+            }
+
+            toast.success("Submitted successfully.");
+            void loadSubmissionStatus(session.user.id);
+        } catch (error) {
+            console.error(error);
+            toast.error("Unable to submit right now.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const handleRun = async () => {
         if (!selectedLanguage || !languageId) {
@@ -350,6 +484,39 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         <div className={`w-full h-full flex flex-col items-end gap-2 bg-[#fffffe] dark:bg-[#1e1e1e] p-2`}>
             <div className="w-full flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
                 <div className="flex flex-wrap items-center gap-2">
+                    {session?.user?.id ? (
+                        submissionStatus?.hasSubmission ? (
+                            <>
+                                <Badge
+                                    className={cn(
+                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                        submissionStatus.status === "ACCEPTED"
+                                            ? "bg-emerald-500/10 text-emerald-600"
+                                            : submissionStatus.status === "PENDING"
+                                                ? "bg-amber-500/10 text-amber-600"
+                                                : "bg-rose-500/10 text-rose-600",
+                                    )}
+                                >
+                                    {statusLabel(submissionStatus.status)}
+                                </Badge>
+                                {formatSeconds(submissionStatus.executionTime) ? (
+                                    <Badge variant="secondary">
+                                        Time: {formatSeconds(submissionStatus.executionTime)}
+                                    </Badge>
+                                ) : null}
+                                {formatMemory(submissionStatus.memoryUsed) ? (
+                                    <Badge variant="secondary">
+                                        Memory Usage: {formatMemory(submissionStatus.memoryUsed)}
+                                    </Badge>
+                                ) : null}
+                            </>
+                        ) : (
+                            <div className="flex gap-4">
+                                <Badge variant="outline">No submission yet</Badge>
+                            </div>
+                        )
+                    ) : null}
+
                     <div className="flex justify-center items-center text-xs">
                         {status === "saving" &&
                             <div className="flex items-center">
@@ -380,6 +547,14 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                             disabled={!canRun || isRunning}
                         >
                             {isRunning ? <Spinner /> : <Play />}
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            onClick={handleSubmit}
+                            disabled={!canSubmit || isSubmitting}
+                            className="min-w-16"
+                        >
+                            {isSubmitting ? <Spinner /> : "Submit"}
                         </Button>
                     </ButtonGroup>
                     <Select value={languageId} onValueChange={setLanguageId}>

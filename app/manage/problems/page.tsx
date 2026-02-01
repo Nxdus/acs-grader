@@ -114,8 +114,8 @@ const getDifficultyMeta = (difficulty: Difficulty) => {
 };
 
 function statusBadgeClassname(isPublished: boolean) {
-  if (isPublished) return "border-green-400 text-green-400";
-  return "border-blue-400 text-blue-400";
+  if (isPublished) return "border-green-400 text-green-500";
+  return "border-blue-400 text-blue-500";
 }
 
 function difficultyBadgeVariant(difficulty: Difficulty) {

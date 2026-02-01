@@ -50,7 +50,6 @@ function ProblemItem({
     : "0.00";
   const isSolved = problem.submissionStatus === "ACCEPTED";
   const showProgress = typeof problem.hasSubmission === "boolean";
-  console.log(problem);
 
   return (
     <Link href={prefix + "/" + problem.slug}>

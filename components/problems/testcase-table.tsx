@@ -35,7 +35,6 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
     >({})
 
     const statusLabel = (status?: string) => {
-        console.log(status)
         switch (status) {
             case "ACCEPTED":
                 return "Accepted"
