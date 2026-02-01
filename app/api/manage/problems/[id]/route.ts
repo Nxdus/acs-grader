@@ -66,6 +66,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
       include: {
         tags: { include: { tag: true } },
         testCases: true,
+        contestProblems: {
+          include: {
+            contest: {
+              select: { id: true, title: true },
+            },
+          },
+        },
       },
     })
 
@@ -89,6 +96,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       createdAt: problem.createdAt,
       updatedAt: problem.updatedAt,
       tags: problem.tags.map((entry) => entry.tag.name),
+      contests: problem.contestProblems.map((entry) => entry.contest),
+      contestId: problem.contestProblems[0]?.contestId ?? null,
       testCases: problem.testCases.map((testCase) => ({
         id: testCase.id,
         input: testCase.input,
@@ -120,56 +129,101 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const inputFormat = typeof body?.inputFormat === "string" ? body.inputFormat : null
     const outputFormat = typeof body?.outputFormat === "string" ? body.outputFormat : null
     const isPublished = typeof body?.isPublished === "boolean" ? body.isPublished : undefined
+    const contestIdValue = body?.contestId
 
     if (difficulty && !Object.values(Difficulty).includes(difficulty as Difficulty)) {
       return NextResponse.json({ error: "Invalid difficulty." }, { status: 400 })
+    }
+
+    const contestId =
+      contestIdValue === null
+        ? null
+        : contestIdValue === undefined
+          ? undefined
+          : Number(contestIdValue)
+
+    if (contestId !== null && contestId !== undefined && !Number.isFinite(contestId)) {
+      return NextResponse.json({ error: "Invalid contest id." }, { status: 400 })
     }
 
     const allowedLanguageIds = normalizeAllowedLanguages(body?.allowedLanguageIds)
     const tags = normalizeTags(body?.tags)
     const testCases = normalizeTestCases(body?.testCases)
 
-    const updated = await prisma.problem.update({
-      where: { id: problemId },
-      data: {
-        ...(title ? { title } : {}),
-        ...(slug ? { slug } : {}),
-        ...(difficulty ? { difficulty: difficulty as Difficulty } : {}),
-        description,
-        constraints,
-        inputFormat,
-        outputFormat,
-        ...(isPublished === undefined ? {} : { isPublished }),
-        allowedLanguageIds,
-        tags: {
-          deleteMany: {},
-          create: tags.map((name) => ({
-            tag: {
-              connectOrCreate: {
-                where: { name },
-                create: { name },
+    const updated = await prisma.$transaction(async (tx) => {
+      const saved = await tx.problem.update({
+        where: { id: problemId },
+        data: {
+          ...(title ? { title } : {}),
+          ...(slug ? { slug } : {}),
+          ...(difficulty ? { difficulty: difficulty as Difficulty } : {}),
+          description,
+          constraints,
+          inputFormat,
+          outputFormat,
+          ...(isPublished === undefined ? {} : { isPublished }),
+          allowedLanguageIds,
+          tags: {
+            deleteMany: {},
+            create: tags.map((name) => ({
+              tag: {
+                connectOrCreate: {
+                  where: { name },
+                  create: { name },
+                },
               },
-            },
-          })),
+            })),
+          },
+          testCases: {
+            deleteMany: {},
+            create: testCases.map((testCase) => ({
+              input: testCase.input,
+              output: testCase.output,
+              isSample: testCase.isSample,
+            })),
+          },
         },
-        testCases: {
-          deleteMany: {},
-          create: testCases.map((testCase) => ({
-            input: testCase.input,
-            output: testCase.output,
-            isSample: testCase.isSample,
-          })),
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          difficulty: true,
+          isPublished: true,
+          createdAt: true,
+          updatedAt: true,
         },
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        difficulty: true,
-        isPublished: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      })
+
+      if (contestIdValue !== undefined) {
+        if (contestId === null) {
+          await tx.contestProblem.deleteMany({ where: { problemId } })
+        } else if (contestId !== undefined) {
+          await tx.contestProblem.deleteMany({
+            where: { problemId, contestId: { not: contestId } },
+          })
+
+          const existing = await tx.contestProblem.findUnique({
+            where: { contestId_problemId: { contestId, problemId } },
+          })
+
+          if (!existing) {
+            const maxOrder = await tx.contestProblem.aggregate({
+              where: { contestId },
+              _max: { order: true },
+            })
+
+            await tx.contestProblem.create({
+              data: {
+                contestId,
+                problemId,
+                order: (maxOrder._max.order ?? 0) + 1,
+              },
+            })
+          }
+        }
+      }
+
+      return saved
     })
 
     return NextResponse.json(updated)

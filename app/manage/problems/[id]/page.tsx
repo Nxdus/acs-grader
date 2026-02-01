@@ -36,6 +36,7 @@ type ProblemDetail = {
   allowedLanguageIds: number[]
   isPublished: boolean
   tags: string[]
+  contestId?: number | null
   testCases: Array<{ id: number; input: string; output: string; isSample: boolean }>
 }
 
@@ -49,12 +50,18 @@ type TagOption = {
   name: string
 }
 
+type ContestOption = {
+  id: number
+  title: string
+}
+
 type FormState = {
   id?: number
   title: string
   slug: string
   difficulty: Difficulty
   isPublished: boolean
+  contestId: string
   description: string
   constraints: string
   inputFormat: string
@@ -77,6 +84,7 @@ function createEmptyState(): FormState {
     slug: "",
     difficulty: difficultyOptions[0],
     isPublished: true,
+    contestId: "",
     description: "",
     constraints: "",
     inputFormat: "",
@@ -148,6 +156,9 @@ export default function ManageProblemEditorPage() {
   const [tagOptions, setTagOptions] = useState<TagOption[]>([])
   const [tagLoading, setTagLoading] = useState(false)
   const [tagError, setTagError] = useState<string | null>(null)
+  const [contestOptions, setContestOptions] = useState<ContestOption[]>([])
+  const [contestLoading, setContestLoading] = useState(false)
+  const [contestError, setContestError] = useState<string | null>(null)
 
   const previewContent = useMemo(() => buildTaskMarkdown(state), [state])
   const selectedLanguageIds = useMemo(
@@ -177,6 +188,7 @@ export default function ManageProblemEditorPage() {
         slug: detail.slug ?? "",
         difficulty: detail.difficulty ?? difficultyOptions[0],
         isPublished: Boolean(detail.isPublished),
+        contestId: detail.contestId ? String(detail.contestId) : "",
         description: detail.description ?? "",
         constraints: detail.constraints ?? "",
         inputFormat: detail.inputFormat ?? "",
@@ -261,6 +273,40 @@ export default function ManageProblemEditorPage() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    async function loadContests() {
+      setContestLoading(true)
+      setContestError(null)
+      try {
+        const params = new URLSearchParams({
+          pageSize: "200",
+          sort: "title",
+          dir: "asc",
+        })
+        const response = await fetch(`/api/manage/contests?${params.toString()}`)
+        if (!response.ok) {
+          throw new Error(`Failed to load contests: ${response.status}`)
+        }
+        const data = (await response.json()) as { items?: ContestOption[] }
+        if (cancelled) return
+        setContestOptions(Array.isArray(data?.items) ? data.items : [])
+      } catch (err) {
+        if (!cancelled) {
+          setContestError(err instanceof Error ? err.message : "Failed to load contests.")
+        }
+      } finally {
+        if (!cancelled) {
+          setContestLoading(false)
+        }
+      }
+    }
+    loadContests()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     const rawId = params?.id
     if (!rawId || rawId === "new") {
       setState(createEmptyState())
@@ -329,6 +375,7 @@ export default function ManageProblemEditorPage() {
       inputFormat: state.inputFormat.trim(),
       outputFormat: state.outputFormat.trim(),
       allowedLanguageIds: parseAllowedLanguageIds(state.allowedLanguageIds),
+      contestId: state.contestId ? Number(state.contestId) : null,
       tags: parseCsv(state.tags),
       testCases: state.testCases
         .map((testCase) => ({
@@ -421,6 +468,41 @@ export default function ManageProblemEditorPage() {
                   <SelectContent>
                     <SelectItem value="Published">Published</SelectItem>
                     <SelectItem value="Draft">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2 min-w-50">
+                <label className="text-sm font-medium" htmlFor="problem-contest">
+                  Contest
+                </label>
+                <Select
+                  value={state.contestId}
+                  onValueChange={(value) =>
+                    updateState({ contestId: value === "__none__" ? "" : value })
+                  }
+                >
+                  <SelectTrigger id="problem-contest" className="w-full">
+                    <SelectValue
+                      placeholder={contestLoading ? "Loading..." : "Select contest"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {contestError ? (
+                      <SelectItem value="__error__" disabled>
+                        {contestError}
+                      </SelectItem>
+                    ) : contestOptions.length === 0 ? (
+                      <SelectItem value="__empty__" disabled>
+                        No contests found
+                      </SelectItem>
+                    ) : (
+                      contestOptions.map((contest) => (
+                        <SelectItem key={contest.id} value={String(contest.id)}>
+                          {contest.title}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
