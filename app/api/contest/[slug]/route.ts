@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,7 +19,7 @@ export async function GET(
         ? {
             submissions: {
               where: { userId },
-              orderBy: { createdAt: "desc" },
+              orderBy: { createdAt: Prisma.SortOrder.desc },
               take: 1,
               select: {
                 status: true,

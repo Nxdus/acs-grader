@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Role } from "@/generated/prisma/client";
+import { Prisma, Role } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 const sortableFields = new Set(["createdAt", "updatedAt", "name", "email"]);
@@ -40,30 +40,33 @@ export async function GET(request: Request) {
       ...(emailVerified === undefined ? {} : { emailVerified }),
     };
 
-    const orderBy = sortableFields.has(sort) ? { [sort]: direction } : { createdAt: "desc" };
+    const orderBy = sortableFields.has(sort)
+      ? { [sort]: direction }
+      : { createdAt: Prisma.SortOrder.desc };
 
-    const [total, items, verified, unverified, admins] = await prisma.$transaction([
-      prisma.user.count({ where }),
-      prisma.user.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          emailVerified: true,
-          createdAt: true,
-          updatedAt: true,
-          image: true,
-        },
-      }),
-      prisma.user.count({ where: { ...where, emailVerified: true } }),
-      prisma.user.count({ where: { ...where, emailVerified: false } }),
-      prisma.user.count({ where: { ...where, role: Role.ADMIN } }),
-    ]);
+    const [total, items, verified, unverified, admins] =
+      await prisma.$transaction([
+        prisma.user.count({ where }),
+        prisma.user.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            emailVerified: true,
+            createdAt: true,
+            updatedAt: true,
+            image: true,
+          },
+        }),
+        prisma.user.count({ where: { ...where, emailVerified: true } }),
+        prisma.user.count({ where: { ...where, emailVerified: false } }),
+        prisma.user.count({ where: { ...where, role: Role.ADMIN } }),
+      ]);
 
     return NextResponse.json({
       items,
@@ -78,7 +81,10 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Failed to fetch users:", error);
-    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 },
+    );
   }
 }
 
@@ -86,12 +92,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const name = typeof body?.name === "string" ? body.name.trim() : "";
-    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const email =
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const role = typeof body?.role === "string" ? body.role : "USER";
     const emailVerified = Boolean(body?.emailVerified);
 
     if (!name || !email) {
-      return NextResponse.json({ error: "Name and email are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Name and email are required." },
+        { status: 400 },
+      );
     }
 
     if (!Object.values(Role).includes(role as Role)) {
@@ -125,6 +135,9 @@ export async function POST(request: Request) {
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
     console.error("Failed to create user:", error);
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 },
+    );
   }
 }
