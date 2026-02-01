@@ -15,11 +15,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
-import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
@@ -286,11 +284,6 @@ export default function ManageProblemEditorPage() {
     })
   }
 
-  function handleSlugChange(value: string) {
-    setSlugTouched(true)
-    updateState({ slug: value })
-  }
-
   function updateAllowedLanguageIds(next: number[]) {
     const unique = Array.from(new Set(next)).sort((a, b) => a - b)
     updateState({ allowedLanguageIds: unique.join(", ") })
@@ -386,7 +379,7 @@ export default function ManageProblemEditorPage() {
 
       <div className="flex flex-col gap-4 px-4 py-2">
         <div className="flex items-end justify-between gap-4 overflow-x-auto py-2">
-          <div className="min-w-[220px]">
+          <div className="min-w-55">
             <p className="text-sm text-muted-foreground">Problem editor</p>
             <h1 className="text-2xl font-semibold tracking-tight">
               {state.title || "Untitled problem"}
@@ -394,7 +387,7 @@ export default function ManageProblemEditorPage() {
           </div>
           <div className="flex items-end gap-4">
             <div className="flex items-center gap-3">
-              <div className="grid gap-2 min-w-[160px]">
+              <div className="grid gap-2 min-w-40">
                 <label className="text-sm font-medium" htmlFor="problem-difficulty">
                   Difficulty
                 </label>
@@ -414,7 +407,7 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-[160px]">
+              <div className="grid gap-2 min-w-40">
                 <label className="text-sm font-medium" htmlFor="problem-status">
                   Status
                 </label>
@@ -431,11 +424,11 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-[240px]">
+              <div className="grid gap-2 min-w-60">
                 <label className="text-sm font-medium">Allowed languages</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full max-w-[280px] justify-between">
+                    <Button variant="outline" className="w-full max-w-70 justify-between">
                       <span className="truncate">
                         {selectedLanguageNames.length > 0
                           ? selectedLanguageNames.join(", ")
@@ -444,7 +437,7 @@ export default function ManageProblemEditorPage() {
                       <ChevronDown className="size-4 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] max-w-[var(--radix-dropdown-menu-trigger-width)] overflow-auto">
+                  <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
                     {languageLoading ? (
                       <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
                     ) : languageError ? (
@@ -467,18 +460,18 @@ export default function ManageProblemEditorPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="grid gap-2 min-w-[200px]">
+              <div className="grid gap-2 min-w-50">
                 <label className="text-sm font-medium">Tags</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full max-w-[280px] justify-between">
+                    <Button variant="outline" className="w-full max-w-70 justify-between">
                       <span className="truncate">
                         {selectedTags.length > 0 ? selectedTags.join(", ") : "Select tags"}
                       </span>
                       <ChevronDown className="size-4 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] max-w-[var(--radix-dropdown-menu-trigger-width)] overflow-auto">
+                  <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
                     {tagLoading ? (
                       <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
                     ) : tagError ? (

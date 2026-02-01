@@ -172,7 +172,7 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
                                             {statusById[row.id] ? (
                                                 <Badge
                                                     className={cn(
-                                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                                        "text-2xs font-semibold uppercase tracking-wide",
                                                         statusById[row.id].verdict === "success"
                                                             ? "bg-emerald-500/10 text-emerald-600"
                                                             : "bg-rose-500/10 text-rose-600",
@@ -205,7 +205,7 @@ export default function TestcaseTable({ rows, className }: TestcaseTableProps) {
                                                 </span>
                                                 <Badge
                                                     className={cn(
-                                                        "text-[11px] font-semibold uppercase tracking-wide",
+                                                        "text-2xs font-semibold uppercase tracking-wide",
                                                         status.verdict === "success"
                                                             ? "bg-emerald-500/10 text-emerald-600"
                                                             : "bg-rose-500/10 text-rose-600",

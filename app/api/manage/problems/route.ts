@@ -71,8 +71,9 @@ export async function GET(request: Request) {
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1"));
     const pageSize = Math.max(
       1,
-      Math.min(50, Number(url.searchParams.get("pageSize") ?? "20")),
+      Math.min(200, Number(url.searchParams.get("pageSize") ?? "20")),
     );
+    const unassigned = url.searchParams.get("unassigned") === "true";
 
     const where: Prisma.ProblemWhereInput = {
       ...(search
@@ -89,6 +90,7 @@ export async function GET(request: Request) {
         : {}),
       ...(published === "true" ? { isPublished: true } : {}),
       ...(published === "false" ? { isPublished: false } : {}),
+      ...(unassigned ? { contestProblems: { none: {} } } : {}),
     };
 
     const orderBy = sortableFields.has(sort)

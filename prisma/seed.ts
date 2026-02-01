@@ -216,7 +216,7 @@ type SeedContest = {
   startAt: Date;
   endAt: Date;
   isPublic?: boolean;
-  scoringType: "ACM" | "SCORE";
+  scoringType: "SCORE";
   freezeAt?: Date;
   problems: Array<{
     slug: string;
@@ -233,7 +233,7 @@ const seedContests: SeedContest[] = [
     startAt: new Date("2026-02-01T10:00:00Z"),
     endAt: new Date("2026-02-01T12:00:00Z"),
     isPublic: true,
-    scoringType: "ACM",
+    scoringType: "SCORE",
     freezeAt: new Date("2026-02-01T11:50:00Z"),
     problems: [
       { slug: "two-sum", order: 1, maxScore: 100 },
@@ -263,7 +263,7 @@ const seedContests: SeedContest[] = [
     startAt: new Date("2026-02-15T09:00:00Z"),
     endAt: new Date("2026-02-15T14:00:00Z"),
     isPublic: true,
-    scoringType: "ACM",
+    scoringType: "SCORE",
     freezeAt: new Date("2026-02-15T13:45:00Z"),
     problems: [
       { slug: "coin-change", order: 1, maxScore: 300 },

@@ -53,7 +53,7 @@ export default function Page() {
         };
 
         fetchRankings();
-    }, []);
+    }, [slug]);
 
     useEffect(() => {
         if (!session?.user) return;
