@@ -642,6 +642,7 @@ export default function ManageProblemEditorPage() {
                 <TextEditor
                   slug={state.slug}
                   allowedLanguageIds={parseAllowedLanguageIds(state.allowedLanguageIds)}
+                  allowSubmit={false}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
