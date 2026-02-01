@@ -244,8 +244,9 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         };
     }, []);
 
-    const visibleLanguages = languages.filter((item) =>
-        allowedLanguageIds.includes(item.id),
+    const visibleLanguages = useMemo(
+        () => languages.filter((item) => allowedLanguageIds.includes(item.id)),
+        [allowedLanguageIds, languages]
     );
 
     useEffect(() => {
@@ -278,7 +279,7 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         if (template) {
             setCode(template);
         }
-    }, [languageId, languages, allowedLanguageIds]);
+    }, [languageId, slug, visibleLanguages]);
 
     const selectedLanguage = visibleLanguages.find((item) => String(item.id) === languageId);
     const editorLanguage = selectedLanguage?.monacoId ?? "plaintext";

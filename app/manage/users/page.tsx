@@ -412,7 +412,7 @@ export default function ManageUsersPage() {
           </Card>
         </div>
 
-        <Card className="border">
+        <Card>
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="text-lg">User data table</CardTitle>
@@ -429,7 +429,7 @@ export default function ManageUsersPage() {
                 />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,7 +442,7 @@ export default function ManageUsersPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -461,7 +461,7 @@ export default function ManageUsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[240px]">
+                    <TableHead className="w-60">
                       <button
                         className="inline-flex items-center gap-2 font-semibold"
                         onClick={() => toggleSort("name")}

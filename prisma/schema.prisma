@@ -34,7 +34,6 @@ enum SubmissionStatus {
 }
 
 enum ContestScoringType {
-  ACM
   SCORE
 }
 

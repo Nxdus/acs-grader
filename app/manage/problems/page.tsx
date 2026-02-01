@@ -315,7 +315,7 @@ export default function ManageProblemsPage() {
           </Card>
         </div>
 
-        <Card className="border">
+        <Card>
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="text-lg">Problem data table</CardTitle>
@@ -334,7 +334,7 @@ export default function ManageProblemsPage() {
                 />
               </div>
               <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,7 +347,7 @@ export default function ManageProblemsPage() {
                 </SelectContent>
               </Select>
               <Select value={publishFilter} onValueChange={setPublishFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Visibility" />
                 </SelectTrigger>
                 <SelectContent>
@@ -366,7 +366,7 @@ export default function ManageProblemsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[260px]">
+                    <TableHead className="w-65">
                       <button
                         className="inline-flex items-center gap-2 font-semibold"
                         onClick={() => toggleSort("title")}

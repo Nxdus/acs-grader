@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useState } from "react"
 
 import TaskMarkdown from "@/components/problems/task-markdown"
 import { Button } from "@/components/ui/button"
@@ -56,7 +56,7 @@ export default function TaskMarkdownEditor({
   previewContent,
   className,
 }: TaskMarkdownEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [textareaElement, setTextareaElement] = useState<HTMLTextAreaElement | null>(null)
 
   const toolbarActions = [
     { label: "H1", icon: Heading1, action: () => insertMarkdown({ prefix: "# ", multiline: true }) },
@@ -71,7 +71,7 @@ export default function TaskMarkdownEditor({
   ]
 
   function insertMarkdown({ prefix, suffix = "", placeholder = "", multiline = false }: InsertOptions) {
-    const element = textareaRef.current
+    const element = textareaElement
     if (!element) {
       onChangeAction(value + prefix + placeholder + suffix)
       return
@@ -158,7 +158,7 @@ export default function TaskMarkdownEditor({
               </div>
               <Textarea
                 id="md-description"
-                ref={textareaRef}
+                ref={setTextareaElement}
                 value={value}
                 onChange={(event) => onChangeAction(event.target.value)}
                 className="min-h-40 resize-none font-mono text-xs leading-relaxed"
