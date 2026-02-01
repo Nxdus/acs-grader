@@ -98,7 +98,7 @@ function formatTime(value: string) {
 function statusBadgeClassname(status: ContestStatus) {
   if (status === "Active") return "border-green-400 text-green-500"
   if (status === "Upcoming") return "border-blue-400 text-blue-500"
-  return "border-muted-foreground text-muted-foreground"
+  return "border-red-400 text-red-500"
 }
 
 function visibilityBadgeClassname(isPublic: boolean) {

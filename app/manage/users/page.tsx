@@ -113,10 +113,6 @@ function initialsFromName(name: string) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")
 }
 
-function statusBadgeVariant(status: UserStatus) {
-  return status === "Verified" ? "outline" : "secondary"
-}
-
 function roleBadgeVariant(role: UserRole) {
   switch (role) {
     case "ADMIN":
@@ -561,7 +557,7 @@ export default function ManageUsersPage() {
                           <Badge className={user.role === "ADMIN" ? "bg-red-500 text-white" : user.role === "STAFF" ? "bg-blue-500 text-white" : "bg-primary text-secondary"} variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={statusFromUser(user) === "Verified" ? 'border-green-400 text-green-400' : 'border-red-400 text-red-400'} variant={statusBadgeVariant(statusFromUser(user))}>
+                          <Badge className={statusFromUser(user) === "Verified" ? 'border-green-400 text-green-500' : 'border-red-400 text-red-500'} variant="outline">
                             {statusFromUser(user)}
                           </Badge>
                         </TableCell>
