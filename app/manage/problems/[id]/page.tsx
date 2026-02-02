@@ -148,6 +148,7 @@ export default function ManageProblemEditorPage() {
   const [state, setState] = useState<FormState>(createEmptyState())
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [slugTouched, setSlugTouched] = useState(false)
   const [languageOptions, setLanguageOptions] = useState<JudgeLanguage[]>([])
@@ -161,6 +162,22 @@ export default function ManageProblemEditorPage() {
   const [contestError, setContestError] = useState<string | null>(null)
 
   const previewContent = useMemo(() => buildTaskMarkdown(state), [state])
+  const canGenerateTestcases = useMemo(
+    () =>
+      Boolean(
+        state.description.trim() &&
+          state.constraints.trim() &&
+          state.inputFormat.trim() &&
+          state.outputFormat.trim()
+      ) && !isGenerating,
+    [
+      state.description,
+      state.constraints,
+      state.inputFormat,
+      state.outputFormat,
+      isGenerating,
+    ]
+  )
   const selectedLanguageIds = useMemo(
     () => parseAllowedLanguageIds(state.allowedLanguageIds),
     [state.allowedLanguageIds]
@@ -353,6 +370,76 @@ export default function ManageProblemEditorPage() {
       updateTags(selectedTags.filter((item) => item !== name))
     } else {
       updateTags([...selectedTags, name])
+    }
+  }
+
+  async function handleGenerateTestcases(count: number) {
+    if (!Number.isFinite(count) || count <= 0) return
+    const amount = Math.floor(count)
+    if (!state.description.trim() ||
+      !state.constraints.trim() ||
+      !state.inputFormat.trim() ||
+      !state.outputFormat.trim()) {
+      setError("Please complete description, constraints, input, and output first.")
+      return
+    }
+    setIsGenerating(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/manage/problems/generate-testcases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: state.description,
+          constraints: state.constraints,
+          inputFormat: state.inputFormat,
+          outputFormat: state.outputFormat,
+          count: amount,
+          existingTestCases: state.testCases.map((testCase) => ({
+            input: testCase.input,
+            output: testCase.output,
+            isSample: testCase.isSample,
+          })),
+        }),
+      })
+
+      const payload = (await response.json().catch(() => null)) as
+        | { testCases?: Array<{ input?: string; output?: string; isSample?: boolean }> }
+        | { error?: string }
+        | null
+
+      if (!response.ok) {
+        const message =
+          payload && "error" in payload && payload.error
+            ? payload.error
+            : "Failed to generate test cases."
+        throw new Error(message)
+      }
+
+      const generated =
+        payload && "testCases" in payload && Array.isArray(payload.testCases)
+          ? payload.testCases
+          : []
+      if (generated.length === 0) {
+        throw new Error("No test cases were generated.")
+      }
+
+      setState((prev) => ({
+        ...prev,
+        testCases: [
+          ...prev.testCases,
+          ...generated.map((testCase) => ({
+            id: crypto.randomUUID(),
+            input: String(testCase.input ?? ""),
+            output: String(testCase.output ?? ""),
+            isSample: Boolean(testCase.isSample),
+          })),
+        ],
+      }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate test cases.")
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -620,8 +707,10 @@ export default function ManageProblemEditorPage() {
             <ResizablePanel defaultSize="30%" maxSize="80%" minSize="20%">
               <TestcaseEditor
                 rows={state.testCases}
-                onChange={(rows) => updateState({ testCases: rows })}
-                onAdd={() => updateState({ testCases: [...state.testCases, emptyTestcase()] })}
+                onChangeAction={(rows) => updateState({ testCases: rows })}
+                onAddAction={() => updateState({ testCases: [...state.testCases, emptyTestcase()] })}
+                onGenerateAction={handleGenerateTestcases}
+                canGenerate={canGenerateTestcases}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
