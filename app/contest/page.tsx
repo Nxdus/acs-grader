@@ -12,6 +12,7 @@ import { useSession } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type ContestWithStatus = Contest & {
   status: "active" | "upcoming" | "ended";
@@ -97,6 +98,36 @@ export default function Page() {
 
     fetchContests();
   }, []);
+
+  async function handleJoin(contestId: number) {
+    if (!session?.user?.id) {
+      toast.error("Please sign in before submitting.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/contest/${contestId}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMessage =
+          typeof data?.error === "string" ? data.error : "Join failed.";
+        toast.error(errorMessage);
+        return;
+      }
+
+      if (data.joined) return;
+
+      toast.success("Join successfully.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Join failed.");
+    }
+  };
 
   if (loading) {
     return (
@@ -196,7 +227,7 @@ export default function Page() {
                 </div>
               </div>
               {contest.status === "active" ? (
-                <Button className="w-full border-0 hover:bg-secondary-foreground/90" variant="default" asChild>
+                <Button onClick={() => handleJoin(contest.id)} className="w-full border-0 hover:bg-secondary-foreground/90" variant="default" asChild>
                   <Link href={`/contest/${contest.slug}`}>
                     <LogIn className="w-4 h-4 mr-2" />
                     Join Contest
