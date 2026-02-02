@@ -5,6 +5,15 @@ import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
   Table,
   TableBody,
   TableCell,
@@ -26,8 +35,10 @@ export type EditableTestcaseRow = {
 
 type TestcaseEditorProps = {
   rows: EditableTestcaseRow[]
-  onChange: (rows: EditableTestcaseRow[]) => void
-  onAdd?: () => void
+  onChangeAction: (rows: EditableTestcaseRow[]) => void
+  onAddAction?: () => void
+  onGenerateAction?: (count: number) => void
+  canGenerate?: boolean
   className?: string
 }
 
@@ -66,8 +77,21 @@ function statusLabel(status?: string) {
   }
 }
 
-export default function TestcaseEditor({ rows, onChange, onAdd, className }: TestcaseEditorProps) {
+export default function TestcaseEditor({
+  rows,
+  onChangeAction,
+  onAddAction,
+  onGenerateAction,
+  canGenerate = true,
+  className,
+}: TestcaseEditorProps) {
   const [statusById, setStatusById] = useState<Record<string, RunStatus>>({})
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false)
+  const [generateStep, setGenerateStep] = useState<"confirm" | "count" | "rate-limit">("confirm")
+  const [generateCount, setGenerateCount] = useState("5")
+  const [generateError, setGenerateError] = useState<string | null>(null)
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
+  const [isRateLimitChecking, setIsRateLimitChecking] = useState(false)
 
   useEffect(() => {
     const handleStart = () => {
@@ -113,12 +137,80 @@ export default function TestcaseEditor({ rows, onChange, onAdd, className }: Tes
   const rowsWithIndex = useMemo(() => rows.map((row, index) => ({ ...row, index })), [rows])
 
   function updateRow(id: string, patch: Partial<EditableTestcaseRow>) {
-    onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+    onChangeAction(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
   }
 
   function removeRow(id: string) {
     if (rows.length <= 1) return
-    onChange(rows.filter((row) => row.id !== id))
+    onChangeAction(rows.filter((row) => row.id !== id))
+  }
+
+  async function checkRateLimit() {
+    setIsRateLimitChecking(true)
+    setRateLimitMessage(null)
+    try {
+      const response = await fetch("/api/manage/problems/generate-testcases/rate-limit")
+      if (response.status === 429) {
+        const payload = (await response.json().catch(() => null)) as
+          | { retryAfter?: number; resetAt?: string; error?: string }
+          | null
+        const retryAfter =
+          payload?.retryAfter && Number.isFinite(payload.retryAfter)
+            ? ` Try again in ${payload.retryAfter} seconds.`
+            : ""
+        const resetAt = payload?.resetAt
+          ? ` Reset at ${new Date(payload.resetAt).toLocaleString()}.`
+          : ""
+        setRateLimitMessage(
+          payload?.error
+            ? `${payload.error}${retryAfter}${resetAt}`
+            : `OpenRouter rate limit exceeded.${retryAfter}${resetAt}`,
+        )
+        setGenerateStep("rate-limit")
+        return true
+      }
+      if (!response.ok) {
+        setGenerateError("Failed to check rate limit. Please try again.")
+        return false
+      }
+      const payload = (await response.json().catch(() => null)) as { limited?: boolean } | null
+      if (payload?.limited) {
+        setRateLimitMessage("OpenRouter rate limit exceeded. Please try again later.")
+        setGenerateStep("rate-limit")
+        return true
+      }
+      return false
+    } catch {
+      setGenerateError("Failed to check rate limit. Please try again.")
+      return false
+    } finally {
+      setIsRateLimitChecking(false)
+    }
+  }
+
+  async function openGenerateDialog() {
+    if (!onGenerateAction || !canGenerate) return
+    setGenerateStep("confirm")
+    setGenerateCount("5")
+    setGenerateError(null)
+    setRateLimitMessage(null)
+    setIsGenerateDialogOpen(true)
+    await checkRateLimit()
+  }
+
+  function handleGenerateContinue() {
+    setGenerateError(null)
+    setGenerateStep("count")
+  }
+
+  function handleGenerateSubmit() {
+    const count = Number(generateCount)
+    if (!Number.isFinite(count) || count <= 0) {
+      setGenerateError("Please enter a number greater than 0.")
+      return
+    }
+    onGenerateAction?.(Math.floor(count))
+    setIsGenerateDialogOpen(false)
   }
 
   return (
@@ -140,13 +232,115 @@ export default function TestcaseEditor({ rows, onChange, onAdd, className }: Tes
             Test Result
           </TabsTrigger>
         </TabsList>
-        {onAdd ? (
-          <div className="flex justify-end py-2">
-            <Button type="button" variant="outline" size="sm" onClick={onAdd}>
+        {onAddAction ? (
+          <div className="flex justify-end gap-2 py-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openGenerateDialog}
+              disabled={!onGenerateAction || !canGenerate}
+            >
+              Generate testcases
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={onAddAction}>
               Add testcase
             </Button>
           </div>
         ) : null}
+        <Dialog
+          open={isGenerateDialogOpen}
+          onOpenChange={(open) => {
+            setIsGenerateDialogOpen(open)
+            if (!open) {
+              setGenerateStep("confirm")
+              setGenerateError(null)
+              setRateLimitMessage(null)
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Generate Test Cases</DialogTitle>
+              <DialogDescription>
+                {generateStep === "confirm"
+                  ? "Please confirm that all required information has been completed."
+                  : generateStep === "count"
+                    ? "How many test cases would you like to generate?"
+                    : "OpenRouter rate limit detected. Please wait before retrying."}
+              </DialogDescription>
+            </DialogHeader>
+            {generateStep === "count" ? (
+              <div className="space-y-2">
+                <Input
+                  type="number"
+                  min={1}
+                  value={generateCount}
+                  onChange={(event) => setGenerateCount(event.target.value)}
+                  placeholder="Number of test cases"
+                />
+                {generateError ? (
+                  <p className="text-sm text-destructive">{generateError}</p>
+                ) : null}
+              </div>
+            ) : generateStep === "rate-limit" ? (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive">
+                  {rateLimitMessage ?? "OpenRouter rate limit exceeded. Please try again later."}
+                </p>
+              </div>
+            ) : null}
+            <DialogFooter>
+              {generateStep === "confirm" ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsGenerateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={handleGenerateContinue} disabled={isRateLimitChecking}>
+                    {isRateLimitChecking ? "Checking..." : "Confirm"}
+                  </Button>
+                </>
+              ) : generateStep === "count" ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setGenerateStep("confirm")}
+                  >
+                    Back
+                  </Button>
+                  <Button type="button" onClick={handleGenerateSubmit}>
+                    Generate
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsGenerateDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      setGenerateStep("confirm")
+                      await checkRateLimit()
+                    }}
+                    disabled={isRateLimitChecking}
+                  >
+                    {isRateLimitChecking ? "Checking..." : "Check again"}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <TabsContent value="testcase" className="py-3 px-2 bg-muted">
           <Table>
             <TableHeader>
@@ -160,12 +354,6 @@ export default function TestcaseEditor({ rows, onChange, onAdd, className }: Tes
                 <TableRow key={row.id}>
                   <TableCell className="align-top">
                     <div className="space-y-2">
-                      <Textarea
-                        value={row.input}
-                        onChange={(event) => updateRow(row.id, { input: event.target.value })}
-                        placeholder="Input"
-                        className="min-h-24 font-mono text-xs"
-                      />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Testcase #{row.index + 1}</span>
                         <label className="flex items-center gap-2">
@@ -177,22 +365,22 @@ export default function TestcaseEditor({ rows, onChange, onAdd, className }: Tes
                           Sample
                         </label>
                       </div>
+                      <Textarea
+                        value={row.input}
+                        onChange={(event) => updateRow(row.id, { input: event.target.value })}
+                        placeholder="Input"
+                        className="min-h-24 font-mono text-xs"
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="align-top">
                     <div className="space-y-2">
-                      <Textarea
-                        value={row.output}
-                        onChange={(event) => updateRow(row.id, { output: event.target.value })}
-                        placeholder="Output"
-                        className="min-h-24 font-mono text-xs"
-                      />
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-end">
                         <Button
                           type="button"
-                          size="icon"
+                          size="icon-xs"
                           variant="ghost"
-                          className="text-destructive"
+                          className="text-destructive size-4"
                           onClick={() => removeRow(row.id)}
                           disabled={rows.length <= 1}
                         >
@@ -211,6 +399,12 @@ export default function TestcaseEditor({ rows, onChange, onAdd, className }: Tes
                           </Badge>
                         ) : null}
                       </div>
+                      <Textarea
+                        value={row.output}
+                        onChange={(event) => updateRow(row.id, { output: event.target.value })}
+                        placeholder="Output"
+                        className="min-h-24 font-mono text-xs"
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
