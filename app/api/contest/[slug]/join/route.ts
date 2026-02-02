@@ -17,18 +17,29 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const contestId = Number(slug);
+    const userId = session.user.id;
 
-    await prisma.contestParticipant.upsert({
+    const alreadyJoined = await prisma.contestParticipant.findUnique({
       where: {
         contestId_userId: {
           contestId,
-          userId: session.user.id,
+          userId,
         },
       },
-      update: {},
-      create: {
+    });
+
+    if (alreadyJoined) {
+      return NextResponse.json({
+        success: true,
+        joined: true,
+        message: "Already joined",
+      });
+    }
+
+    await prisma.contestParticipant.create({
+      data: {
         contestId,
-        userId: session.user.id,
+        userId,
       },
     });
 
