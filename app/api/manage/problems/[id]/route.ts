@@ -151,6 +151,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const testCases = normalizeTestCases(body?.testCases)
 
     const updated = await prisma.$transaction(async (tx) => {
+      if (testCases.length > 0) {
+        await tx.submissionResult.deleteMany({
+          where: {
+            testCase: { problemId },
+          },
+        })
+      }
+
       const saved = await tx.problem.update({
         where: { id: problemId },
         data: {
