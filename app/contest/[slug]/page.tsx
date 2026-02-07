@@ -26,7 +26,17 @@ type ContestParticipantWithUser = ContestParticipant & {
     user?: User;
 };
 
-export default function Page({ status }: { status: "active" | "upcoming" | "ended" }) {
+const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
+  const now = new Date();
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+
+  if (now < start) return "upcoming";
+  if (now > end) return "ended";
+  return "active";
+};
+
+export default function Page() {
     const { slug } = useParams();
     const { data: session } = useSession();
 
@@ -91,6 +101,9 @@ export default function Page({ status }: { status: "active" | "upcoming" | "ende
         if (slug) fetchContest();
     }, [slug, session?.user?.id]);
 
+    if (!contest) return;
+    const contestStatus = getContestStatus(contest.startAt, contest.endAt);
+
     if (loading) {
         return (
             <main className="w-full h-full flex flex-col justify-center items-center rounded-xl bg-background">
@@ -112,7 +125,7 @@ export default function Page({ status }: { status: "active" | "upcoming" | "ende
                     <p className="text-sm text-muted-foreground">
                         {contest?.description}
                     </p>
-                    {status !== "active" &&
+                    {contestStatus !== "active" &&
                         <Badge className="mt-2" variant={"destructive"}>Contest Ended</Badge>
                     }
                 </div>
@@ -121,7 +134,7 @@ export default function Page({ status }: { status: "active" | "upcoming" | "ende
                         <h2 className="font-semibold">Problem</h2>
                         <ItemGroup className="mt-4 gap-0 has-[[data-size=sm]]:gap-0 has-[[data-size=xs]]:gap-0">
                             {problems.map((p, index) => (
-                                <ProblemItem disabled={status !== "active"} className={index % 2 == 0 ? "bg-muted" : "bg-background"} prefix={`/contest/${slug}`} key={p.problemId} problem={p.problem} order={index + 1} />
+                                <ProblemItem disabled={contestStatus !== "active"} className={index % 2 == 0 ? "bg-muted" : "bg-background"} prefix={`/contest/${slug}`} key={p.problemId} problem={p.problem} order={index + 1} />
                             ))}
                         </ItemGroup>
                     </div>
