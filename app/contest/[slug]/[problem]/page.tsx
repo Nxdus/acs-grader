@@ -9,7 +9,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { headers } from "next/headers"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { Contest } from "@/generated/prisma/client"
 
 type ProblemResponse = {
@@ -99,6 +99,16 @@ const getTask = async (slug: string, problem: string): Promise<TaskResponse | nu
   return response.json()
 }
 
+const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
+  const now = new Date();
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+
+  if (now < start) return "upcoming";
+  if (now > end) return "ended";
+  return "active";
+};
+
 export default async function Page({
   params,
 }: {
@@ -112,7 +122,6 @@ export default async function Page({
     notFound()
   }
 
-
   const problemTitle = problem
     .split("-")
     .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ""))
@@ -123,6 +132,12 @@ export default async function Page({
     input: testCase.input,
     output: testCase.output,
   }))
+
+  const contestStatus = getContestStatus(contestObj?.startAt, contestObj?.endAt);
+
+  if (contestStatus !== "active") {
+    redirect('/');
+  }
 
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
