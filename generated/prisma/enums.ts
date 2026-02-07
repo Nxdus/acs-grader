@@ -45,7 +45,6 @@ export type SubmissionStatus = (typeof SubmissionStatus)[keyof typeof Submission
 
 
 export const ContestScoringType = {
-  ACM: 'ACM',
   SCORE: 'SCORE'
 } as const
 
