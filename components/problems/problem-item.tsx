@@ -37,12 +37,14 @@ function ProblemItem({
   problem,
   className,
   order,
-  prefix
+  prefix,
+  disabled = false,
 }: {
   problem: ProblemListItem;
   className?: string;
   order: number;
   prefix: string;
+  disabled?: boolean;
 }) {
   const difficultyMeta = getDifficultyMeta(problem.difficulty);
   const successRate = problem.participantCount
@@ -52,7 +54,7 @@ function ProblemItem({
   const showProgress = typeof problem.hasSubmission === "boolean";
 
   return (
-    <Link href={prefix + "/" + problem.slug}>
+    disabled ? (
       <Item className={className} variant={"default"} size={"xs"}>
         <ItemContent className="flex-row justify-between items-center">
           <div className="flex flex-3/4">
@@ -83,7 +85,40 @@ function ProblemItem({
           </div>
         </ItemContent>
       </Item>
-    </Link>
+    ) : (
+      <Link href={prefix + "/" + problem.slug}>
+        <Item className={className} variant={"default"} size={"xs"}>
+          <ItemContent className="flex-row justify-between items-center">
+            <div className="flex flex-3/4">
+              <ItemTitle className="line-clamp-1">
+                {order}. {problem.title}
+              </ItemTitle>
+            </div>
+
+            <div className="flex flex-1">
+              <ItemDescription className="text-sm flex w-full items-center justify-between gap-2">
+                {showProgress ? (
+                  <Badge
+                    variant="outline"
+                    className={
+                      isSolved
+                        ? "border-emerald-500/40 text-emerald-600"
+                        : "border-muted-foreground/40 border-0 text-transparent"
+                    }
+                  >
+                    Accepted
+                  </Badge>
+                ) : null}
+                <span>{successRate}%</span>
+                <span className={difficultyMeta.className}>
+                  {difficultyMeta.label}
+                </span>
+              </ItemDescription>
+            </div>
+          </ItemContent>
+        </Item>
+      </Link>
+    )
   );
 }
 

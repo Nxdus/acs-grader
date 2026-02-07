@@ -10,6 +10,7 @@ import ProblemItem, { ProblemListItem } from "@/components/problems/problem-item
 import { useSession } from "@/lib/auth-client";
 import { ChessQueen, ChessRook, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const LEADERBOARD_SIZE = 10;
 
@@ -25,7 +26,7 @@ type ContestParticipantWithUser = ContestParticipant & {
     user?: User;
 };
 
-export default function Page() {
+export default function Page({ status }: { status: "active" | "upcoming" | "ended" }) {
     const { slug } = useParams();
     const { data: session } = useSession();
 
@@ -111,13 +112,16 @@ export default function Page() {
                     <p className="text-sm text-muted-foreground">
                         {contest?.description}
                     </p>
+                    {status !== "active" &&
+                        <Badge className="mt-2" variant={"destructive"}>Contest Ended</Badge>
+                    }
                 </div>
                 <div className="flex flex-1 gap-6">
                     <div className="flex-3/4">
                         <h2 className="font-semibold">Problem</h2>
                         <ItemGroup className="mt-4 gap-0 has-[[data-size=sm]]:gap-0 has-[[data-size=xs]]:gap-0">
                             {problems.map((p, index) => (
-                                <ProblemItem className={index % 2 == 0 ? "bg-muted" : "bg-background"} prefix={`/contest/${slug}`} key={p.problemId} problem={p.problem} order={index + 1} />
+                                <ProblemItem disabled={status !== "active"} className={index % 2 == 0 ? "bg-muted" : "bg-background"} prefix={`/contest/${slug}`} key={p.problemId} problem={p.problem} order={index + 1} />
                             ))}
                         </ItemGroup>
                     </div>

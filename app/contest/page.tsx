@@ -233,19 +233,22 @@ export default function Page() {
                     Join Contest
                   </Link>
                 </Button>
+              ) : contest.status === "ended" ? (
+                <Button
+                  className="w-full border-0"
+                  variant={contest.status === "ended" ? "destructive" : "default"}
+                  asChild
+                >
+                  <Link href={`/contest/${contest.slug}`}>
+                    <Eye className="w-4 h-4 mr-2" />View Results
+                  </Link>
+                </Button>
               ) : (
                 <Button
                   className="w-full border-0 opacity-60 cursor-not-allowed"
                   disabled
-                  variant={contest.status === "ended" ? "destructive" : "default"}
                 >
-                  {contest.status === "ended" ? (
-                    <>
-                      <Eye className="w-4 h-4 mr-2" />View Results
-                    </>
-                  ) : (
-                    "Coming Soon..."
-                  )}
+                  Coming Soon...
                 </Button>
               )}
             </Card>
