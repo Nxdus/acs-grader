@@ -151,6 +151,7 @@ export const ProblemScalarFieldEnum = {
   description: 'description',
   level: 'level',
   difficulty: 'difficulty',
+  memoryLimit: 'memoryLimit',
   constraints: 'constraints',
   inputFormat: 'inputFormat',
   outputFormat: 'outputFormat',

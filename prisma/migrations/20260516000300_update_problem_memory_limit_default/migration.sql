@@ -1,0 +1,2 @@
+ALTER TABLE "problem"
+ALTER COLUMN "memoryLimit" SET DEFAULT 256;

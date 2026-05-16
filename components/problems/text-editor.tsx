@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
+import { formatMemoryFromKb, formatMemoryLimitFromMb } from "@/lib/format-memory";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
     ssr: false,
@@ -35,6 +36,7 @@ type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 type TextEditorProps = {
     slug: string;
     allowedLanguageIds?: number[];
+    memoryLimit?: number | null;
     initialCode?: string;
     contestSlug?: string;
     allowSubmit?: boolean;
@@ -103,7 +105,14 @@ data = sys.stdin.read().strip()
     return "";
 };
 
-export default function TextEditor({ slug, allowedLanguageIds = [], initialCode = "", contestSlug, allowSubmit = true }: TextEditorProps) {
+export default function TextEditor({
+    slug,
+    allowedLanguageIds = [],
+    memoryLimit,
+    initialCode = "",
+    contestSlug,
+    allowSubmit = true,
+}: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
     const [languageId, setLanguageId] = useState("");
@@ -207,11 +216,12 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
         return `${value.toFixed(3)}s`;
     };
 
-    const formatMemory = (value?: number | null) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return null;
-        if (value >= 1024) return `${(value / 1024).toFixed(2)} MB`;
-        return `${value.toFixed(0)} KB`;
-    };
+    const formattedMemoryLimit = formatMemoryLimitFromMb(memoryLimit);
+    const formattedMemoryUsage = formatMemoryFromKb(submissionStatus?.memoryUsed);
+    const memoryLabel =
+        formattedMemoryUsage && formattedMemoryLimit
+            ? `${formattedMemoryUsage}/${formattedMemoryLimit}`
+            : formattedMemoryUsage ?? formattedMemoryLimit;
 
     useEffect(() => {
         let cancelled = false;
@@ -505,9 +515,9 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                                         Time: {formatSeconds(submissionStatus.executionTime)}
                                     </Badge>
                                 ) : null}
-                                {formatMemory(submissionStatus.memoryUsed) ? (
+                                {memoryLabel ? (
                                     <Badge variant="secondary">
-                                        Memory Usage: {formatMemory(submissionStatus.memoryUsed)}
+                                        Memory: {memoryLabel}
                                     </Badge>
                                 ) : null}
                             </>
@@ -516,6 +526,10 @@ export default function TextEditor({ slug, allowedLanguageIds = [], initialCode 
                                 <Badge variant="outline">No submission yet</Badge>
                             </div>
                         )
+                    ) : memoryLabel ? (
+                        <Badge variant="secondary">
+                            Memory: {memoryLabel}
+                        </Badge>
                     ) : null}
 
                     <div className="flex justify-center items-center text-xs">
