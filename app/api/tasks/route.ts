@@ -4,6 +4,14 @@ import prisma from "@/lib/prisma";
 
 const DEFAULT_TAKE = 50;
 const MAX_TAKE = 200;
+const sortableFields = new Set([
+  "title",
+  "difficulty",
+  "participantCount",
+  "successCount",
+  "createdAt",
+  "updatedAt",
+]);
 
 const isAllowedDifficulty = (value: string | null) =>
   value === "EASY" || value === "MEDIUM" || value === "HARD";
@@ -21,6 +29,8 @@ export async function GET(request: NextRequest) {
   const tag = searchParams.get("tag")?.trim();
   const includeUnpublished = searchParams.get("published") === "false";
   const userId = searchParams.get("userId")?.trim();
+  const sort = searchParams.get("sort") ?? "createdAt";
+  const direction = searchParams.get("dir") === "asc" ? "asc" : "desc";
 
   const takeRaw = toNumber(searchParams.get("take"));
   const skipRaw = toNumber(searchParams.get("skip"));
@@ -30,6 +40,9 @@ export async function GET(request: NextRequest) {
       ? Math.min(Math.max(1, takeRaw), MAX_TAKE)
       : DEFAULT_TAKE;
   const skip = typeof skipRaw === "number" ? Math.max(0, skipRaw) : 0;
+  const orderBy = sortableFields.has(sort)
+    ? { [sort]: direction }
+    : { createdAt: "desc" };
 
   const where: Prisma.ProblemWhereInput = {};
 
@@ -80,7 +93,7 @@ export async function GET(request: NextRequest) {
   if (userId) {
     const problems = await prisma.problem.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       take,
       skip,
       include: {
@@ -124,7 +137,7 @@ export async function GET(request: NextRequest) {
 
   const problems = await prisma.problem.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy,
     take,
     skip,
     include: baseInclude,
