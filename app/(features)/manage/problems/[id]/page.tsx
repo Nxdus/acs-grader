@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 
 import TaskMarkdownEditor from "@/components/problems/task-markdown-editor"
@@ -21,7 +22,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { formatMemoryLimitFromMb } from "@/lib/format-memory"
 import { FIXED_TEST_CASE_COUNT } from "@/lib/problem-config"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, FileUp } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
 const levelOptions = ["BEGINNER", "ADVANCED"] as const
@@ -173,11 +174,13 @@ function parseAllowedLanguageIds(value: string) {
 export default function ManageProblemEditorPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const [state, setState] = useState<FormState>(createEmptyState())
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [slugTouched, setSlugTouched] = useState(false)
   const [languageOptions, setLanguageOptions] = useState<JudgeLanguage[]>([])
@@ -370,6 +373,54 @@ export default function ManageProblemEditorPage() {
 
   function updateState(patch: Partial<FormState>) {
     setState((prev) => ({ ...prev, ...patch }))
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+
+    if (!file) {
+      return
+    }
+
+    setIsImporting(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/manage/problems/import", {
+        method: "POST",
+        body: formData,
+      })
+
+      const payload = (await response.json().catch(() => null)) as
+        | { testCases?: Array<{ input?: string; output?: string; isSample?: boolean }>; error?: string }
+        | null
+
+      if (!response.ok || !Array.isArray(payload?.testCases)) {
+        throw new Error(payload?.error ?? "Failed to import testcases.")
+      }
+
+      const importedTestCases = payload.testCases
+
+      setState((prev) => ({
+        ...prev,
+        testCases: buildFixedTestCases(
+          importedTestCases.map((testCase) => ({
+            id: crypto.randomUUID(),
+            input: String(testCase.input ?? ""),
+            output: String(testCase.output ?? ""),
+            isSample: Boolean(testCase.isSample),
+          })),
+        ),
+      }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to import file.")
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   function handleTitleChange(value: string) {
@@ -575,6 +626,13 @@ export default function ManageProblemEditorPage() {
             </h1>
           </div>
           <div className="flex min-w-0 flex-col-reverse gap-4 xl:items-end">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
               <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium" htmlFor="problem-level">
@@ -758,6 +816,14 @@ export default function ManageProblemEditorPage() {
               <Button variant="outline" onClick={() => router.push("/manage/problems")}>
                 Back
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => importInputRef.current?.click()}
+                disabled={isImporting}
+              >
+                {isImporting ? <Spinner /> : <FileUp />}
+                Import testcases
+              </Button>
               <Button onClick={handleSave} disabled={isSaving}>
                 {isSaving ? <Spinner /> : "Save"}
               </Button>
@@ -765,6 +831,12 @@ export default function ManageProblemEditorPage() {
           </div>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <p className="text-xs text-muted-foreground">
+          Import format: JSON with <code>version</code> and exactly {FIXED_TEST_CASE_COUNT} items in <code>testCases</code>.{" "}
+          <Link className="underline underline-offset-4" href="/api/manage/problems/import">
+            Download template
+          </Link>
+        </p>
       </div>
 
       <ResizablePanelGroup className="min-w-0 border-t">

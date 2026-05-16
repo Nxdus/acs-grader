@@ -285,18 +285,18 @@ export default function ManageProblemsPage() {
       />
 
       <div className="container mx-auto flex flex-col gap-6 px-4 py-8">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Administration</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Problems</h1>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button variant="outline" onClick={handleResetFilters}>
-              Reset filters
-            </Button>
-            <Button asChild className="gap-2">
-              <Link href="/manage/problems/new">
-                <FileText className="size-4" />
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Administration</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Problems</h1>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button variant="outline" onClick={handleResetFilters}>
+                Reset filters
+              </Button>
+              <Button asChild className="gap-2">
+                <Link href="/manage/problems/new">
+                  <FileText className="size-4" />
                 New problem
               </Link>
             </Button>
