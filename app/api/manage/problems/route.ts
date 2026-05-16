@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Difficulty, Prisma, UserLevel } from "@/generated/prisma/client";
+import { FIXED_TEST_CASE_COUNT } from "@/lib/problem-config";
 import prisma from "@/lib/prisma";
 
 const sortableFields = new Set([
@@ -244,6 +245,13 @@ export async function POST(request: Request) {
     );
     const tags = normalizeTags(body?.tags);
     const testCases = normalizeTestCases(body?.testCases);
+
+    if (testCases.length !== FIXED_TEST_CASE_COUNT) {
+      return NextResponse.json(
+        { error: `Problem must contain exactly ${FIXED_TEST_CASE_COUNT} test cases.` },
+        { status: 400 },
+      );
+    }
 
     const contestId =
       contestIdValue === null

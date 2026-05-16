@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { formatMemoryLimitFromMb } from "@/lib/format-memory"
+import { FIXED_TEST_CASE_COUNT } from "@/lib/problem-config"
 import { ChevronDown } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
@@ -87,6 +88,14 @@ const emptyTestcase = (): EditableTestcaseRow => ({
   isSample: false,
 })
 
+function buildFixedTestCases(testCases: EditableTestcaseRow[] = []) {
+  const normalized = testCases.slice(0, FIXED_TEST_CASE_COUNT)
+  while (normalized.length < FIXED_TEST_CASE_COUNT) {
+    normalized.push(emptyTestcase())
+  }
+  return normalized
+}
+
 function createEmptyState(): FormState {
   return {
     title: "",
@@ -102,7 +111,7 @@ function createEmptyState(): FormState {
     outputFormat: "",
     allowedLanguageIds: "",
     tags: "",
-    testCases: [emptyTestcase()],
+    testCases: buildFixedTestCases(),
   }
 }
 
@@ -236,13 +245,13 @@ export default function ManageProblemEditorPage() {
         tags: (detail.tags ?? []).join(", "),
         testCases:
           detail.testCases.length > 0
-            ? detail.testCases.map((testCase) => ({
-              id: String(testCase.id),
-              input: testCase.input,
-              output: testCase.output,
-              isSample: testCase.isSample,
-            }))
-            : [emptyTestcase()],
+            ? buildFixedTestCases(detail.testCases.map((testCase) => ({
+                id: String(testCase.id),
+                input: testCase.input,
+                output: testCase.output,
+                isSample: testCase.isSample,
+              })))
+            : buildFixedTestCases(),
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load problem.")
@@ -398,7 +407,14 @@ export default function ManageProblemEditorPage() {
 
   async function handleGenerateTestcases(count: number) {
     if (!Number.isFinite(count) || count <= 0) return
-    const amount = Math.floor(count)
+    const remainingSlots = Math.max(0, FIXED_TEST_CASE_COUNT - state.testCases.filter(
+      (testCase) => testCase.input.trim() && testCase.output.trim()
+    ).length)
+    const amount = Math.min(Math.floor(count), remainingSlots)
+    if (amount <= 0) {
+      setError(`This problem already has ${FIXED_TEST_CASE_COUNT} test cases.`)
+      return
+    }
     if (!state.description.trim() ||
       !state.constraints.trim() ||
       !state.inputFormat.trim() ||
@@ -449,15 +465,15 @@ export default function ManageProblemEditorPage() {
 
       setState((prev) => ({
         ...prev,
-        testCases: [
-          ...prev.testCases,
+        testCases: buildFixedTestCases([
+          ...prev.testCases.filter((testCase) => testCase.input.trim() && testCase.output.trim()),
           ...generated.map((testCase) => ({
             id: crypto.randomUUID(),
             input: String(testCase.input ?? ""),
             output: String(testCase.output ?? ""),
             isSample: Boolean(testCase.isSample),
           })),
-        ],
+        ]),
       }))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate test cases.")
@@ -481,6 +497,20 @@ export default function ManageProblemEditorPage() {
     setIsSaving(true)
     setError(null)
 
+    const normalizedTestCases = state.testCases
+      .map((testCase) => ({
+        input: testCase.input.trim(),
+        output: testCase.output.trim(),
+        isSample: testCase.isSample,
+      }))
+      .filter((testCase) => testCase.input && testCase.output)
+
+    if (normalizedTestCases.length !== FIXED_TEST_CASE_COUNT) {
+      setError(`Problem must contain exactly ${FIXED_TEST_CASE_COUNT} completed test cases.`)
+      setIsSaving(false)
+      return
+    }
+
     const payload = {
       title: state.title.trim(),
       slug: state.slug.trim(),
@@ -495,13 +525,7 @@ export default function ManageProblemEditorPage() {
       allowedLanguageIds: parseAllowedLanguageIds(state.allowedLanguageIds),
       contestId: state.contestId ? Number(state.contestId) : null,
       tags: parseCsv(state.tags),
-      testCases: state.testCases
-        .map((testCase) => ({
-          input: testCase.input.trim(),
-          output: testCase.output.trim(),
-          isSample: testCase.isSample,
-        }))
-        .filter((testCase) => testCase.input && testCase.output),
+      testCases: normalizedTestCases,
     }
 
     try {
@@ -771,10 +795,10 @@ export default function ManageProblemEditorPage() {
             <ResizablePanel defaultSize="30%" maxSize="80%" minSize="20%">
               <TestcaseEditor
                 rows={state.testCases}
-                onChangeAction={(rows) => updateState({ testCases: rows })}
-                onAddAction={() => updateState({ testCases: [...state.testCases, emptyTestcase()] })}
+                onChangeAction={(rows) => updateState({ testCases: buildFixedTestCases(rows) })}
                 onGenerateAction={handleGenerateTestcases}
                 canGenerate={canGenerateTestcases}
+                fixedCount={FIXED_TEST_CASE_COUNT}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

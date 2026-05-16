@@ -1,0 +1,2 @@
+export const FIXED_TEST_CASE_COUNT = 50
+export const CONTEST_SCORE_PER_PASSED_TEST_CASE = 2
