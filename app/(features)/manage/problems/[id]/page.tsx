@@ -18,6 +18,8 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
+import { Input } from "@/components/ui/input"
+import { formatMemoryLimitFromMb } from "@/lib/format-memory"
 import { ChevronDown } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
@@ -33,6 +35,7 @@ type ProblemDetail = {
   description: string | null
   level: UserLevel
   difficulty: Difficulty
+  memoryLimit: number
   constraints: string | null
   inputFormat: string | null
   outputFormat: string | null
@@ -68,6 +71,7 @@ type FormState = {
   isPublished: boolean
   contestId: string
   description: string
+  memoryLimit: string
   constraints: string
   inputFormat: string
   outputFormat: string
@@ -92,6 +96,7 @@ function createEmptyState(): FormState {
     isPublished: true,
     contestId: "",
     description: "",
+    memoryLimit: "256",
     constraints: "",
     inputFormat: "",
     outputFormat: "",
@@ -109,8 +114,17 @@ function buildTaskMarkdown(state: FormState) {
     content.push(state.description)
   }
 
-  if (state.constraints) {
-    content.push(`## Constraints\n${state.constraints}`)
+  if (state.constraints || state.memoryLimit.trim()) {
+    const details = []
+    if (state.constraints) {
+      details.push(state.constraints)
+    }
+    if (state.memoryLimit.trim()) {
+      details.push(
+        `Memory limit: ${formatMemoryLimitFromMb(Number(state.memoryLimit.trim())) ?? state.memoryLimit.trim() + " MB"}`
+      )
+    }
+    content.push(`## Constraints\n${details.join("\n")}`)
   }
 
   if (state.inputFormat) {
@@ -214,6 +228,7 @@ export default function ManageProblemEditorPage() {
         isPublished: Boolean(detail.isPublished),
         contestId: detail.contestId ? String(detail.contestId) : "",
         description: detail.description ?? "",
+        memoryLimit: String(detail.memoryLimit ?? 256),
         constraints: detail.constraints ?? "",
         inputFormat: detail.inputFormat ?? "",
         outputFormat: detail.outputFormat ?? "",
@@ -457,6 +472,12 @@ export default function ManageProblemEditorPage() {
       return
     }
 
+    const memoryLimit = Number(state.memoryLimit)
+    if (!Number.isInteger(memoryLimit) || memoryLimit <= 0) {
+      setError("Memory limit must be a positive integer.")
+      return
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -467,6 +488,7 @@ export default function ManageProblemEditorPage() {
       difficulty: state.difficulty,
       isPublished: state.isPublished,
       description: state.description.trim(),
+      memoryLimit,
       constraints: state.constraints.trim(),
       inputFormat: state.inputFormat.trim(),
       outputFormat: state.outputFormat.trim(),
@@ -510,7 +532,7 @@ export default function ManageProblemEditorPage() {
   }
 
   return (
-    <main className="w-full h-full flex flex-col bg-background">
+    <main className="flex h-full min-w-0 flex-col overflow-hidden bg-background">
       <SectionNavBar items={
         [
           { label: "Manage" },
@@ -520,17 +542,17 @@ export default function ManageProblemEditorPage() {
       }
       />
 
-      <div className="flex flex-col gap-4 px-4 py-2">
-        <div className="flex items-end justify-between gap-4 overflow-x-auto py-2">
-          <div className="min-w-55">
+      <div className="flex min-w-0 flex-col gap-4 px-4 py-2">
+        <div className="flex min-w-0 flex-col gap-4 py-2 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Problem editor</p>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="truncate text-2xl font-semibold tracking-tight">
               {state.title || "Untitled problem"}
             </h1>
           </div>
-          <div className="flex items-end gap-4">
-            <div className="flex items-center gap-3">
-              <div className="grid gap-2 min-w-40">
+          <div className="flex min-w-0 flex-col-reverse gap-4 xl:items-end">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium" htmlFor="problem-level">
                   Level
                 </label>
@@ -550,7 +572,7 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-40">
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium" htmlFor="problem-difficulty">
                   Difficulty
                 </label>
@@ -570,7 +592,21 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-40">
+              <div className="grid gap-2 min-w-0">
+                <label className="text-sm font-medium" htmlFor="problem-memory-limit">
+                  Memory limit (MB)
+                </label>
+                <Input
+                  id="problem-memory-limit"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={state.memoryLimit}
+                  onChange={(event) => updateState({ memoryLimit: event.target.value })}
+                  placeholder="256"
+                />
+              </div>
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium" htmlFor="problem-status">
                   Status
                 </label>
@@ -587,7 +623,7 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-50">
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium" htmlFor="problem-contest">
                   Contest
                 </label>
@@ -622,11 +658,11 @@ export default function ManageProblemEditorPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2 min-w-60">
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium">Allowed languages</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full max-w-70 justify-between">
+                    <Button variant="outline" className="w-full min-w-0 justify-between">
                       <span className="truncate">
                         {selectedLanguageNames.length > 0
                           ? selectedLanguageNames.join(", ")
@@ -658,11 +694,11 @@ export default function ManageProblemEditorPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="grid gap-2 min-w-50">
+              <div className="grid gap-2 min-w-0">
                 <label className="text-sm font-medium">Tags</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full max-w-70 justify-between">
+                    <Button variant="outline" className="w-full min-w-0 justify-between">
                       <span className="truncate">
                         {selectedTags.length > 0 ? selectedTags.join(", ") : "Select tags"}
                       </span>
@@ -694,8 +730,7 @@ export default function ManageProblemEditorPage() {
               </div>
             </div>
 
-            <span className="h-8 w-px bg-border" />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Button variant="outline" onClick={() => router.push("/manage/problems")}>
                 Back
               </Button>
@@ -708,7 +743,7 @@ export default function ManageProblemEditorPage() {
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
 
-      <ResizablePanelGroup className="border-t">
+      <ResizablePanelGroup className="min-w-0 border-t">
         <ResizablePanel maxSize="80%" minSize="20%">
           <ResizablePanelGroup direction="vertical">
             <ResizablePanel maxSize="80%" minSize="20%">
@@ -760,6 +795,7 @@ export default function ManageProblemEditorPage() {
                 <TextEditor
                   slug={state.slug}
                   allowedLanguageIds={parseAllowedLanguageIds(state.allowedLanguageIds)}
+                  memoryLimit={Number(state.memoryLimit) || null}
                   allowSubmit={false}
                 />
               ) : (

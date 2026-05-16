@@ -117,6 +117,7 @@ model Problem {
   description        String
   level              UserLevel  @default(BEGINNER)
   difficulty         Difficulty
+  memoryLimit        Int        @default(256)
   constraints        String?
   inputFormat        String?
   outputFormat       String?

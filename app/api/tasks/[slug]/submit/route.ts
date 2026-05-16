@@ -200,7 +200,12 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const problem = await prisma.problem.findUnique({
     where: { slug },
-    select: { id: true, isPublished: true, allowedLanguageIds: true },
+    select: {
+      id: true,
+      isPublished: true,
+      allowedLanguageIds: true,
+      memoryLimit: true,
+    },
   });
 
   if (!problem || !problem.isPublished) {
@@ -332,6 +337,7 @@ export async function POST(request: Request, { params }: RouteContext) {
           language_id: languageId,
           stdin: encodeIfNeeded(testCase.input, useBase64),
           expected_output: encodeIfNeeded(testCase.output, useBase64),
+          memory_limit: problem.memoryLimit * 1024,
         }),
       });
 

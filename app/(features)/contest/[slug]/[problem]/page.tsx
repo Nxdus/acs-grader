@@ -8,6 +8,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
+import { formatMemoryLimitFromMb } from "@/lib/format-memory"
 import { headers } from "next/headers"
 import { notFound, redirect } from "next/navigation"
 import { Contest } from "@/generated/prisma/client"
@@ -16,6 +17,7 @@ type ProblemResponse = {
   slug: string
   title: string
   description?: string | null
+  memoryLimit?: number
   constraints?: string | null
   inputFormat?: string | null
   outputFormat?: string | null
@@ -44,8 +46,15 @@ const buildTaskMarkdown = (task: ProblemResponse, fallbackTitle: string) => {
     content.push(task.description)
   }
 
-  if (task.constraints) {
-    content.push(`## Constraints\n${task.constraints}`)
+  if (task.constraints || task.memoryLimit) {
+    const details: string[] = []
+    if (task.constraints) {
+      details.push(task.constraints)
+    }
+    if (task.memoryLimit) {
+      details.push(`Memory limit: ${formatMemoryLimitFromMb(task.memoryLimit)}`)
+    }
+    content.push(`## Constraints\n${details.join("\n")}`)
   }
 
   if (task.inputFormat) {
@@ -169,6 +178,7 @@ export default async function Page({
           <TextEditor
             slug={problem}
             allowedLanguageIds={task.problem.allowedLanguageIds ?? []}
+            memoryLimit={task.problem.memoryLimit}
             contestSlug={contestObj.slug}
           />
         </ResizablePanel>

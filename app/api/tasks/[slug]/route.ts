@@ -49,6 +49,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     title: problem.title,
     description: problem.description,
     difficulty: problem.difficulty,
+    memoryLimit: problem.memoryLimit,
     constraints: problem.constraints,
     inputFormat: problem.inputFormat,
     outputFormat: problem.outputFormat,

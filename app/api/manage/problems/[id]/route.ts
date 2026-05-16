@@ -52,6 +52,14 @@ function normalizeTestCases(value: unknown) {
     .filter((entry): entry is { input: string; output: string; isSample: boolean } => Boolean(entry))
 }
 
+function normalizeMemoryLimit(value: unknown) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return null
+  const normalized = Math.trunc(parsed)
+  if (normalized <= 0) return null
+  return normalized
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
@@ -87,6 +95,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       level: problem.level,
       description: problem.description,
       difficulty: problem.difficulty,
+      memoryLimit: problem.memoryLimit,
       constraints: problem.constraints,
       inputFormat: problem.inputFormat,
       outputFormat: problem.outputFormat,
@@ -127,6 +136,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const difficulty = body?.difficulty
     const level = body?.level
     const description = typeof body?.description === "string" ? body.description : null
+    const memoryLimit = normalizeMemoryLimit(body?.memoryLimit)
     const constraints = typeof body?.constraints === "string" ? body.constraints : null
     const inputFormat = typeof body?.inputFormat === "string" ? body.inputFormat : null
     const outputFormat = typeof body?.outputFormat === "string" ? body.outputFormat : null
@@ -139,6 +149,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
       return NextResponse.json({ error: "Invalid level." }, { status: 400 })
+    }
+
+    if (memoryLimit === null) {
+      return NextResponse.json({ error: "Invalid memory limit." }, { status: 400 })
     }
 
     const contestId =
@@ -191,6 +205,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           ...(slug ? { slug } : {}),
           ...(level ? { level: level as UserLevel } : {}),
           ...(difficulty ? { difficulty: difficulty as Difficulty } : {}),
+          memoryLimit,
           description,
           constraints,
           inputFormat,
@@ -223,6 +238,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           title: true,
           level: true,
           difficulty: true,
+          memoryLimit: true,
           isPublished: true,
           createdAt: true,
           updatedAt: true,

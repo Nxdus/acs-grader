@@ -42,6 +42,7 @@ export async function GET(
         slug: response?.problem.slug,
         title: response?.problem.title,
         description: response?.problem.description,
+        memoryLimit: response?.problem.memoryLimit,
         constraints: response?.problem.constraints,
         inputFormat: response?.problem.inputFormat,
         outputFormat: response?.problem.outputFormat,

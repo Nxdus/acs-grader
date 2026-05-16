@@ -60,6 +60,14 @@ function normalizeTestCases(value: unknown) {
     );
 }
 
+function normalizeMemoryLimit(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  const normalized = Math.trunc(parsed);
+  if (normalized <= 0) return null;
+  return normalized;
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -115,6 +123,7 @@ export async function GET(request: Request) {
             title: true,
             level: true,
             difficulty: true,
+            memoryLimit: true,
             isPublished: true,
             participantCount: true,
             successCount: true,
@@ -151,6 +160,7 @@ export async function GET(request: Request) {
       title: problem.title,
       level: problem.level,
       difficulty: problem.difficulty,
+      memoryLimit: problem.memoryLimit,
       isPublished: problem.isPublished,
       participantCount: problem.participantCount,
       successCount: problem.successCount,
@@ -190,6 +200,7 @@ export async function POST(request: Request) {
     const level = body?.level;
     const description =
       typeof body?.description === "string" ? body.description : null;
+    const memoryLimit = normalizeMemoryLimit(body?.memoryLimit);
     const constraints =
       typeof body?.constraints === "string" ? body.constraints : null;
     const inputFormat =
@@ -217,6 +228,13 @@ export async function POST(request: Request) {
     if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
       return NextResponse.json(
         { error: "Invalid level." },
+        { status: 400 },
+      );
+    }
+
+    if (memoryLimit === null) {
+      return NextResponse.json(
+        { error: "Invalid memory limit." },
         { status: 400 },
       );
     }
@@ -265,6 +283,7 @@ export async function POST(request: Request) {
           description,
           ...(level ? { level: level as UserLevel } : {}),
           difficulty: difficulty as Difficulty,
+          memoryLimit,
           constraints,
           inputFormat,
           outputFormat,
