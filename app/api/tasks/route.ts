@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 const DEFAULT_TAKE = 50;
@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
       : DEFAULT_TAKE;
   const skip = typeof skipRaw === "number" ? Math.max(0, skipRaw) : 0;
   const orderBy = sortableFields.has(sort)
-    ? { [sort]: direction }
-    : { createdAt: "desc" };
+    ? { [sort]: direction === "asc" ? Prisma.SortOrder.asc : Prisma.SortOrder.desc }
+    : { createdAt: Prisma.SortOrder.desc };
 
   const where: Prisma.ProblemWhereInput = {};
 
