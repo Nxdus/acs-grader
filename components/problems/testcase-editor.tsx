@@ -39,6 +39,7 @@ type TestcaseEditorProps = {
   onAddAction?: () => void
   onGenerateAction?: (count: number) => void
   canGenerate?: boolean
+  fixedCount?: number
   className?: string
 }
 
@@ -83,6 +84,7 @@ export default function TestcaseEditor({
   onAddAction,
   onGenerateAction,
   canGenerate = true,
+  fixedCount,
   className,
 }: TestcaseEditorProps) {
   const [statusById, setStatusById] = useState<Record<string, RunStatus>>({})
@@ -92,6 +94,8 @@ export default function TestcaseEditor({
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
   const [isRateLimitChecking, setIsRateLimitChecking] = useState(false)
+  const completedCount = rows.filter((row) => row.input.trim() && row.output.trim()).length
+  const remainingSlots = fixedCount ? Math.max(0, fixedCount - completedCount) : null
 
   useEffect(() => {
     const handleStart = () => {
@@ -191,7 +195,7 @@ export default function TestcaseEditor({
   async function openGenerateDialog() {
     if (!onGenerateAction || !canGenerate) return
     setGenerateStep("confirm")
-    setGenerateCount("5")
+    setGenerateCount(String(remainingSlots && remainingSlots > 0 ? remainingSlots : 5))
     setGenerateError(null)
     setRateLimitMessage(null)
     setIsGenerateDialogOpen(true)
@@ -200,6 +204,10 @@ export default function TestcaseEditor({
 
   function handleGenerateContinue() {
     setGenerateError(null)
+    if (fixedCount && remainingSlots === 0) {
+      setGenerateError(`This problem already has ${fixedCount} test cases.`)
+      return
+    }
     setGenerateStep("count")
   }
 
@@ -207,6 +215,10 @@ export default function TestcaseEditor({
     const count = Number(generateCount)
     if (!Number.isFinite(count) || count <= 0) {
       setGenerateError("Please enter a number greater than 0.")
+      return
+    }
+    if (fixedCount && remainingSlots !== null && count > remainingSlots) {
+      setGenerateError(`You can generate at most ${remainingSlots} more test cases.`)
       return
     }
     onGenerateAction?.(Math.floor(count))
@@ -232,20 +244,29 @@ export default function TestcaseEditor({
             Test Result
           </TabsTrigger>
         </TabsList>
-        {onAddAction ? (
+        {onAddAction || onGenerateAction ? (
           <div className="flex justify-end gap-2 py-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={openGenerateDialog}
-              disabled={!onGenerateAction || !canGenerate}
-            >
-              Generate testcases
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={onAddAction}>
-              Add testcase
-            </Button>
+            {fixedCount ? (
+              <div className="mr-auto flex items-center text-xs text-muted-foreground">
+                {completedCount}/{fixedCount} completed test cases
+              </div>
+            ) : null}
+            {onGenerateAction ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={openGenerateDialog}
+                disabled={!canGenerate || (fixedCount !== undefined && remainingSlots === 0)}
+              >
+                Generate testcases
+              </Button>
+            ) : null}
+            {onAddAction && fixedCount === undefined ? (
+              <Button type="button" variant="outline" size="sm" onClick={onAddAction}>
+                Add testcase
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <Dialog
@@ -266,7 +287,9 @@ export default function TestcaseEditor({
                 {generateStep === "confirm"
                   ? "Please confirm that all required information has been completed."
                   : generateStep === "count"
-                    ? "How many test cases would you like to generate?"
+                    ? fixedCount !== undefined
+                      ? `How many of the remaining ${remainingSlots ?? 0} test cases would you like to generate?`
+                      : "How many test cases would you like to generate?"
                     : "OpenRouter rate limit detected. Please wait before retrying."}
               </DialogDescription>
             </DialogHeader>
@@ -275,6 +298,7 @@ export default function TestcaseEditor({
                 <Input
                   type="number"
                   min={1}
+                  max={remainingSlots ?? undefined}
                   value={generateCount}
                   onChange={(event) => setGenerateCount(event.target.value)}
                   placeholder="Number of test cases"
@@ -382,7 +406,7 @@ export default function TestcaseEditor({
                           variant="ghost"
                           className="text-destructive size-4"
                           onClick={() => removeRow(row.id)}
-                          disabled={rows.length <= 1}
+                          disabled={rows.length <= 1 || fixedCount !== undefined}
                         >
                           <Trash2 className="size-4" />
                         </Button>

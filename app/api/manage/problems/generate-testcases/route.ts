@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { FIXED_TEST_CASE_COUNT } from "@/lib/problem-config"
 
 type GenerateRequest = {
   description?: string
@@ -12,7 +13,7 @@ type GenerateRequest = {
 const DEFAULT_MODEL = "qwen/qwen-2.5-7b-instruct:free"
 const DEFAULT_FALLBACK_MODEL = "liquid/lfm-2.5-1.2b-instruct:free"
 const DEFAULT_COUNT = 5
-const MAX_COUNT = 50
+const MAX_COUNT = FIXED_TEST_CASE_COUNT
 const MAX_CHUNK = 2
 const MAX_ATTEMPTS_PER_CHUNK = 5
 const OPENROUTER_TIMEOUT_MS = 20000

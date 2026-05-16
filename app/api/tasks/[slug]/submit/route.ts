@@ -214,7 +214,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   let submissionContext:
     | { type: "problem" }
-    | { type: "contest"; contestId: number; maxScore: number } = {
+    | { type: "contest"; contestId: number } = {
     type: "problem",
   };
 
@@ -250,7 +250,6 @@ export async function POST(request: Request, { params }: RouteContext) {
     submissionContext = {
       type: "contest",
       contestId: contest.id,
-      maxScore: contestProblem.maxScore ?? 0,
     };
   }
 
@@ -444,12 +443,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   );
 
   const computedScore =
-    submissionContext.type === "contest" && finalStatus === "ACCEPTED"
+    submissionContext.type === "contest"
       ? computeScore(
-          submissionContext.maxScore,
-          executionTime,
-          memoryUsed,
-          languageId,
+          submissionResults.filter((result) => result.passed).length,
         )
       : 0;
 
@@ -532,7 +528,6 @@ export async function POST(request: Request, { params }: RouteContext) {
       where: {
         contestId: submissionContext.contestId,
         userId,
-        status: "ACCEPTED",
       },
       _max: {
         score: true,

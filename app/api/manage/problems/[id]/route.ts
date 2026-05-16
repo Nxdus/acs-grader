@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { Difficulty, UserLevel } from "@/generated/prisma/client"
+import { FIXED_TEST_CASE_COUNT } from "@/lib/problem-config"
 import prisma from "@/lib/prisma"
 
 type RouteParams = {
@@ -188,6 +189,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const allowedLanguageIds = normalizeAllowedLanguages(body?.allowedLanguageIds)
     const tags = normalizeTags(body?.tags)
     const testCases = normalizeTestCases(body?.testCases)
+
+    if (testCases.length !== FIXED_TEST_CASE_COUNT) {
+      return NextResponse.json(
+        { error: `Problem must contain exactly ${FIXED_TEST_CASE_COUNT} test cases.` },
+        { status: 400 },
+      )
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       if (testCases.length > 0) {
