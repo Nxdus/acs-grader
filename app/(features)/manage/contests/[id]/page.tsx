@@ -17,11 +17,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 
 const visibilityOptions = ["Public", "Private"] as const
+const levelOptions = ["BEGINNER", "ADVANCED"] as const
+type UserLevel = (typeof levelOptions)[number]
 
 type ContestDetail = {
   id: number
   slug: string
   title: string
+  level: UserLevel
   description: string | null
   startAt: string
   endAt: string
@@ -40,6 +43,7 @@ type ContestProblemRow = {
     id: number
     slug: string
     title: string
+    level: UserLevel
     difficulty: "EASY" | "MEDIUM" | "HARD"
   }
 }
@@ -48,6 +52,7 @@ type AvailableProblem = {
   id: number
   slug: string
   title: string
+  level: UserLevel
   difficulty: "EASY" | "MEDIUM" | "HARD"
 }
 
@@ -55,6 +60,7 @@ type FormState = {
   id?: number
   title: string
   slug: string
+  level: UserLevel
   description: string
   startAt: string
   endAt: string
@@ -69,6 +75,7 @@ const emptyState = (): FormState => {
   return {
     title: "",
     slug: "",
+    level: levelOptions[0],
     description: "",
     startAt: toInputValue(now),
     endAt: toInputValue(end),
@@ -165,6 +172,7 @@ export default function ManageContestEditorPage() {
         id: detail.id,
         title: detail.title ?? "",
         slug: detail.slug ?? "",
+        level: detail.level ?? levelOptions[0],
         description: detail.description ?? "",
         startAt: toInputValueFromISO(detail.startAt),
         endAt: toInputValueFromISO(detail.endAt),
@@ -203,6 +211,7 @@ export default function ManageContestEditorPage() {
         pageSize: "200",
         sort: "updatedAt",
         dir: "desc",
+        level: state.level,
       })
       const response = await fetch(`/api/manage/problems?${params.toString()}`)
       if (!response.ok) {
@@ -216,7 +225,7 @@ export default function ManageContestEditorPage() {
     } finally {
       setAvailableLoading(false)
     }
-  }, [])
+  }, [state.level])
 
   useEffect(() => {
     if (!contestId) {
@@ -280,6 +289,7 @@ export default function ManageContestEditorPage() {
     const payload = {
       title: state.title.trim(),
       slug: state.slug.trim(),
+      level: state.level,
       description: state.description.trim(),
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
@@ -490,6 +500,26 @@ export default function ManageContestEditorPage() {
           </div>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="flex flex-wrap items-end gap-3">
+              <div className="grid gap-2 min-w-45">
+                <label className="text-sm font-medium" htmlFor="contest-level">
+                  Level
+                </label>
+                <Select
+                  value={state.level}
+                  onValueChange={(value) => updateState({ level: value as UserLevel })}
+                >
+                  <SelectTrigger id="contest-level" className="w-full">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levelOptions.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level === "BEGINNER" ? "Beginner" : "Advanced"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid gap-2 min-w-45">
                 <label className="text-sm font-medium" htmlFor="contest-visibility">
                   Visibility
@@ -763,7 +793,7 @@ export default function ManageContestEditorPage() {
                       ) : (
                         availableProblems.map((problem) => (
                           <SelectItem key={problem.id} value={String(problem.id)}>
-                            {problem.title} ({problem.slug})
+                            {problem.title} ({problem.level === "BEGINNER" ? "Beginner" : "Advanced"})
                           </SelectItem>
                         ))
                       )}
@@ -810,6 +840,7 @@ export default function ManageContestEditorPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Problem</TableHead>
+                    <TableHead>Level</TableHead>
                     <TableHead>Difficulty</TableHead>
                     <TableHead>Order</TableHead>
                     <TableHead>Max score</TableHead>
@@ -819,13 +850,13 @@ export default function ManageContestEditorPage() {
                 <TableBody>
                   {problemsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                         <Spinner />
                       </TableCell>
                     </TableRow>
                   ) : contestProblems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                         No problems added to this contest yet.
                       </TableCell>
                     </TableRow>
@@ -837,6 +868,11 @@ export default function ManageContestEditorPage() {
                             <div className="font-medium">{problem.problem.title}</div>
                             <div className="text-xs text-muted-foreground">{problem.problem.slug}</div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {problem.problem.level === "BEGINNER" ? "Beginner" : "Advanced"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{problem.problem.difficulty}</Badge>

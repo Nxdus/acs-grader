@@ -1,4 +1,4 @@
-import { ContestScoringType } from "@/generated/prisma/client"
+import { ContestScoringType, UserLevel } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
@@ -37,6 +37,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         id: true,
         slug: true,
         title: true,
+        level: true,
         description: true,
         startAt: true,
         endAt: true,
@@ -62,6 +63,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       id: contest.id,
       slug: contest.slug,
       title: contest.title,
+      level: contest.level,
       description: contest.description,
       startAt: contest.startAt,
       endAt: contest.endAt,
@@ -94,9 +96,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const description = typeof body?.description === "string" ? body.description : null
     const isPublic = typeof body?.isPublic === "boolean" ? body.isPublic : undefined
     const scoringType = body?.scoringType
+    const level = body?.level
 
     if (scoringType && scoringType !== ContestScoringType.SCORE) {
       return NextResponse.json({ error: "Invalid scoring type." }, { status: 400 })
+    }
+
+    if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
+      return NextResponse.json({ error: "Invalid level." }, { status: 400 })
     }
 
     const hasStartAt = Object.prototype.hasOwnProperty.call(body ?? {}, "startAt")
@@ -141,6 +148,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data: {
         ...(title ? { title } : {}),
         ...(slug ? { slug } : {}),
+        ...(level ? { level: level as UserLevel } : {}),
         description,
         ...(startAt ? { startAt } : {}),
         ...(endAt ? { endAt } : {}),
@@ -152,6 +160,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         id: true,
         slug: true,
         title: true,
+        level: true,
         startAt: true,
         endAt: true,
         isPublic: true,

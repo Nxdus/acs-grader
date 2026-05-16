@@ -1424,6 +1424,7 @@ export const UserScalarFieldEnum = {
   emailVerified: 'emailVerified',
   image: 'image',
   role: 'role',
+  level: 'level',
   score: 'score',
   attended: 'attended',
   createdAt: 'createdAt',
@@ -1483,6 +1484,7 @@ export const ProblemScalarFieldEnum = {
   slug: 'slug',
   title: 'title',
   description: 'description',
+  level: 'level',
   difficulty: 'difficulty',
   constraints: 'constraints',
   inputFormat: 'inputFormat',
@@ -1560,6 +1562,7 @@ export const ContestScalarFieldEnum = {
   slug: 'slug',
   title: 'title',
   description: 'description',
+  level: 'level',
   startAt: 'startAt',
   endAt: 'endAt',
   isPublic: 'isPublic',
@@ -1656,6 +1659,20 @@ export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'Role[]'
  */
 export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
+    
+
+
+/**
+ * Reference to a field of type 'UserLevel'
+ */
+export type EnumUserLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserLevel'>
+    
+
+
+/**
+ * Reference to a field of type 'UserLevel[]'
+ */
+export type ListEnumUserLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserLevel[]'>
     
 
 

@@ -21,14 +21,17 @@ import { Spinner } from "@/components/ui/spinner"
 import { ChevronDown } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
+const levelOptions = ["BEGINNER", "ADVANCED"] as const
 
 type Difficulty = (typeof difficultyOptions)[number]
+type UserLevel = (typeof levelOptions)[number]
 
 type ProblemDetail = {
   id: number
   slug: string
   title: string
   description: string | null
+  level: UserLevel
   difficulty: Difficulty
   constraints: string | null
   inputFormat: string | null
@@ -53,12 +56,14 @@ type TagOption = {
 type ContestOption = {
   id: number
   title: string
+  level: UserLevel
 }
 
 type FormState = {
   id?: number
   title: string
   slug: string
+  level: UserLevel
   difficulty: Difficulty
   isPublished: boolean
   contestId: string
@@ -82,6 +87,7 @@ function createEmptyState(): FormState {
   return {
     title: "",
     slug: "",
+    level: levelOptions[0],
     difficulty: difficultyOptions[0],
     isPublished: true,
     contestId: "",
@@ -203,6 +209,7 @@ export default function ManageProblemEditorPage() {
         id: detail.id,
         title: detail.title ?? "",
         slug: detail.slug ?? "",
+        level: detail.level ?? levelOptions[0],
         difficulty: detail.difficulty ?? difficultyOptions[0],
         isPublished: Boolean(detail.isPublished),
         contestId: detail.contestId ? String(detail.contestId) : "",
@@ -299,6 +306,7 @@ export default function ManageProblemEditorPage() {
           pageSize: "200",
           sort: "title",
           dir: "asc",
+          level: state.level,
         })
         const response = await fetch(`/api/manage/contests?${params.toString()}`)
         if (!response.ok) {
@@ -321,7 +329,7 @@ export default function ManageProblemEditorPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [state.level])
 
   useEffect(() => {
     const rawId = params?.id
@@ -455,6 +463,7 @@ export default function ManageProblemEditorPage() {
     const payload = {
       title: state.title.trim(),
       slug: state.slug.trim(),
+      level: state.level,
       difficulty: state.difficulty,
       isPublished: state.isPublished,
       description: state.description.trim(),
@@ -522,6 +531,26 @@ export default function ManageProblemEditorPage() {
           <div className="flex items-end gap-4">
             <div className="flex items-center gap-3">
               <div className="grid gap-2 min-w-40">
+                <label className="text-sm font-medium" htmlFor="problem-level">
+                  Level
+                </label>
+                <Select
+                  value={state.level}
+                  onValueChange={(value) => updateState({ level: value as UserLevel })}
+                >
+                  <SelectTrigger id="problem-level" className="w-full">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levelOptions.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level === "BEGINNER" ? "Beginner" : "Advanced"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2 min-w-40">
                 <label className="text-sm font-medium" htmlFor="problem-difficulty">
                   Difficulty
                 </label>
@@ -586,7 +615,7 @@ export default function ManageProblemEditorPage() {
                     ) : (
                       contestOptions.map((contest) => (
                         <SelectItem key={contest.id} value={String(contest.id)}>
-                          {contest.title}
+                          {contest.title} ({contest.level === "BEGINNER" ? "Beginner" : "Advanced"})
                         </SelectItem>
                       ))
                     )}

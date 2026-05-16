@@ -12,6 +12,7 @@ console.log(adapter);
 type SeedProblem = {
   slug: string;
   title: string;
+  level: "BEGINNER" | "ADVANCED";
   difficulty: "EASY" | "MEDIUM" | "HARD";
   description: string;
   constraints?: string;
@@ -34,6 +35,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "two-sum",
     title: "Two Sum",
+    level: "BEGINNER",
     difficulty: "EASY",
     description:
       "Given an array of integers and a target value, return the indices of the two numbers that add up to the target.",
@@ -51,6 +53,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "valid-parentheses",
     title: "Valid Parentheses",
+    level: "BEGINNER",
     difficulty: "EASY",
     description:
       "Check if a string of brackets is valid. A string is valid if brackets are closed in the correct order.",
@@ -68,6 +71,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "merge-intervals",
     title: "Merge Intervals",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description:
       "Given a list of intervals, merge all overlapping intervals and return the non-overlapping intervals sorted by start.",
@@ -88,6 +92,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "longest-substring-no-repeat",
     title: "Longest Substring Without Repeating Characters",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description:
       "Find the length of the longest substring without repeating characters.",
@@ -105,6 +110,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "binary-tree-level-order",
     title: "Binary Tree Level Order Traversal",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description:
       "Return the level order traversal of a binary tree from left to right.",
@@ -126,6 +132,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "shortest-path-grid",
     title: "Shortest Path in Grid",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description:
       "Given a grid of 0s and 1s, find the shortest path from top-left to bottom-right moving in 4 directions.",
@@ -142,6 +149,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "coin-change",
     title: "Coin Change",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description:
       "Given coin denominations and a total amount, compute the minimum coins needed to make the amount.",
@@ -156,6 +164,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "top-k-frequent",
     title: "Top K Frequent Elements",
+    level: "ADVANCED",
     difficulty: "MEDIUM",
     description: "Return the k most frequent elements from an integer array.",
     constraints: "1 <= n <= 10^5.",
@@ -171,6 +180,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "matrix-rotation",
     title: "Rotate Matrix",
+    level: "ADVANCED",
     difficulty: "HARD",
     description: "Rotate an NxN matrix 90 degrees clockwise in place.",
     constraints: "1 <= n <= 500.",
@@ -190,6 +200,7 @@ const seedProblems: SeedProblem[] = [
   {
     slug: "minimum-spanning-tree",
     title: "Minimum Spanning Tree",
+    level: "ADVANCED",
     difficulty: "HARD",
     description:
       "Given a weighted undirected graph, find the total weight of its minimum spanning tree.",
@@ -212,6 +223,7 @@ const seedProblems: SeedProblem[] = [
 type SeedContest = {
   slug: string;
   title: string;
+  level: "BEGINNER" | "ADVANCED";
   description?: string;
   startAt: Date;
   endAt: Date;
@@ -229,6 +241,7 @@ const seedContests: SeedContest[] = [
   {
     slug: "beginner-contest-1",
     title: "Beginner Contest 1",
+    level: "BEGINNER",
     description: "Introduction to basic data structures and algorithms",
     startAt: new Date("2026-02-01T10:00:00Z"),
     endAt: new Date("2026-02-01T12:00:00Z"),
@@ -244,6 +257,7 @@ const seedContests: SeedContest[] = [
   {
     slug: "intermediate-contest-1",
     title: "Intermediate Contest 1",
+    level: "ADVANCED",
     description: "Advanced algorithms and optimization",
     startAt: new Date("2026-02-08T14:00:00Z"),
     endAt: new Date("2026-02-08T17:00:00Z"),
@@ -259,6 +273,7 @@ const seedContests: SeedContest[] = [
   {
     slug: "advanced-contest-1",
     title: "Advanced Contest 1",
+    level: "ADVANCED",
     description: "Hard-level problems for experts",
     startAt: new Date("2026-02-15T09:00:00Z"),
     endAt: new Date("2026-02-15T14:00:00Z"),
@@ -301,6 +316,10 @@ const seedContestData = async () => {
     });
 
     if (existing) {
+      await prisma.contest.update({
+        where: { id: existing.id },
+        data: { level: contest.level },
+      });
       continue;
     }
 
@@ -324,6 +343,7 @@ const seedContestData = async () => {
       data: {
         slug: contest.slug,
         title: contest.title,
+        level: contest.level,
         description: contest.description,
         startAt: contest.startAt,
         endAt: contest.endAt,
@@ -349,6 +369,10 @@ const seed = async () => {
     });
 
     if (existing) {
+      await prisma.problem.update({
+        where: { id: existing.id },
+        data: { level: problem.level },
+      });
       continue;
     }
 
@@ -366,6 +390,7 @@ const seed = async () => {
         slug: problem.slug,
         title: problem.title,
         description: problem.description,
+        level: problem.level,
         difficulty: problem.difficulty,
         constraints: problem.constraints,
         inputFormat: problem.inputFormat,

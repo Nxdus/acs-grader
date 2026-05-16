@@ -30,6 +30,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+
+type NameDialogStep = "name" | "level"
+type UserLevel = "BEGINNER" | "ADVANCED"
+
+const userLevelOptions: { value: UserLevel; label: string }[] = [
+    { value: "BEGINNER", label: "Beginner" },
+    { value: "ADVANCED", label: "Advanced" },
+]
 
 export function SigninForm({
     className,
@@ -43,8 +58,10 @@ export function SigninForm({
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
     const [name, setName] = useState("")
+    const [level, setLevel] = useState<UserLevel>("BEGINNER")
     const [nameDialogError, setNameDialogError] = useState<string | null>(null)
     const [isNameSubmitting, setIsNameSubmitting] = useState(false)
+    const [nameDialogStep, setNameDialogStep] = useState<NameDialogStep>("name")
 
     const isNewOAuthUser = searchParams.get("new-user") === "1"
     const redirectUrl = "/"
@@ -94,7 +111,7 @@ export function SigninForm({
         }
     }
 
-    const handleNameDialogContinue = async () => {
+    const handleNameDialogNext = () => {
         const trimmedName = name.trim()
         if (!trimmedName) {
             setNameDialogError("Please enter your name.")
@@ -102,8 +119,13 @@ export function SigninForm({
         }
 
         setNameDialogError(null)
+        setNameDialogStep("level")
+    }
+
+    const handleNameDialogContinue = async () => {
+        const trimmedName = name.trim()
         setIsNameSubmitting(true)
-        const res = await updateUser({ name: trimmedName })
+        const res = await updateUser({ name: trimmedName, level })
         setIsNameSubmitting(false)
 
         if (res.error) {
@@ -205,46 +227,79 @@ export function SigninForm({
                     setIsNameDialogOpen(open)
                     if (!open) {
                         setNameDialogError(null)
+                        setNameDialogStep("name")
                     }
                 }}
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Enter your name</DialogTitle>
+                        <DialogTitle>{nameDialogStep === "name" ? "Enter your name" : "Choose your level"}</DialogTitle>
                         <DialogDescription>
-                            We need your name to finish creating your account.
+                            {nameDialogStep === "name"
+                                ? "We need your name to finish creating your account."
+                                : "Select the level that best matches your experience."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium" htmlFor="oauth-name">
-                            Name
-                        </label>
-                        <Input
-                            id="oauth-name"
-                            placeholder="your name"
-                            value={name}
-                            onChange={(e) => {
-                                const nextName = e.target.value
-                                setName(nextName)
-                                if (nameDialogError && nextName.trim()) {
-                                    setNameDialogError(null)
-                                }
-                            }}
-                            required
-                        />
-                        {nameDialogError && (
-                            <p className="text-sm text-destructive">
-                                {nameDialogError}
-                            </p>
-                        )}
-                    </div>
+                    {nameDialogStep === "name" ? (
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium" htmlFor="oauth-name">
+                                Name
+                            </label>
+                            <Input
+                                id="oauth-name"
+                                placeholder="your name"
+                                value={name}
+                                onChange={(e) => {
+                                    const nextName = e.target.value
+                                    setName(nextName)
+                                    if (nameDialogError && nextName.trim()) {
+                                        setNameDialogError(null)
+                                    }
+                                }}
+                                required
+                            />
+                            {nameDialogError && (
+                                <p className="text-sm text-destructive">
+                                    {nameDialogError}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium" htmlFor="oauth-level">
+                                Level
+                            </label>
+                            <Select value={level} onValueChange={(value) => setLevel(value as UserLevel)}>
+                                <SelectTrigger id="oauth-level" className="w-full">
+                                    <SelectValue placeholder="Select your level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {userLevelOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                     <DialogFooter>
+                        {nameDialogStep === "level" && (
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setNameDialogStep("name")}
+                                disabled={isNameSubmitting}
+                            >
+                                Back
+                            </Button>
+                        )}
                         <Button
                             type="button"
-                            onClick={handleNameDialogContinue}
+                            onClick={nameDialogStep === "name" ? handleNameDialogNext : handleNameDialogContinue}
                             disabled={isNameSubmitting}
                         >
-                            {isNameSubmitting ? "Saving..." : "Continue"}
+                            {isNameSubmitting ? "Saving..." : nameDialogStep === "name" ? "Continue" : "Save"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

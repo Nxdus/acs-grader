@@ -75,11 +75,12 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
 
   const { data: session } = useSession()
+  const userLevel = session?.user?.level ?? "BEGINNER"
 
   useEffect(() => {
     const fetchContests = async () => {
       try {
-        const response = await fetch("/api/contest");
+        const response = await fetch(`/api/contest?level=${userLevel}`);
         const data = await response.json();
 
         const contestsWithStatus = data.map((contest: Contest) => ({
@@ -97,7 +98,7 @@ export default function Page() {
     };
 
     fetchContests();
-  }, []);
+  }, [userLevel]);
 
   async function handleJoin(contestId: number) {
     if (!session?.user?.id) {

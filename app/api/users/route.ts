@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { Prisma, Role } from "@/generated/prisma/client";
+import { Prisma, Role, UserLevel } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
-const sortableFields = new Set(["createdAt", "updatedAt", "name", "email"]);
+const sortableFields = new Set(["createdAt", "updatedAt", "name", "email", "level"]);
 
 function parseBoolean(value: string | null) {
   if (!value) return undefined;
@@ -57,6 +57,7 @@ export async function GET(request: Request) {
             name: true,
             email: true,
             role: true,
+            level: true,
             emailVerified: true,
             createdAt: true,
             updatedAt: true,
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
     const email =
       typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const role = typeof body?.role === "string" ? body.role : "USER";
+    const level = typeof body?.level === "string" ? body.level : "BEGINNER";
     const emailVerified = Boolean(body?.emailVerified);
 
     if (!name || !email) {
@@ -108,6 +110,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid role." }, { status: 400 });
     }
 
+    if (!Object.values(UserLevel).includes(level as UserLevel)) {
+      return NextResponse.json({ error: "Invalid level." }, { status: 400 });
+    }
+
     const now = new Date();
 
     const user = await prisma.user.create({
@@ -116,6 +122,7 @@ export async function POST(request: Request) {
         name,
         email,
         role: role as Role,
+        level: level as UserLevel,
         emailVerified,
         createdAt: now,
         updatedAt: now,
@@ -125,6 +132,7 @@ export async function POST(request: Request) {
         name: true,
         email: true,
         role: true,
+        level: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,

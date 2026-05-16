@@ -51,6 +51,10 @@ export const auth = betterAuth({
         additionalFields: {
             role: {
                 type: "string"
+            },
+            level: {
+                type: "string",
+                defaultValue: "BEGINNER",
             }
         }
     }

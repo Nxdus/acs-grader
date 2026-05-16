@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, UserLevel } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 const DEFAULT_TAKE = 50;
@@ -16,6 +16,9 @@ const sortableFields = new Set([
 const isAllowedDifficulty = (value: string | null) =>
   value === "EASY" || value === "MEDIUM" || value === "HARD";
 
+const isAllowedLevel = (value: string | null) =>
+  value !== null && Object.values(UserLevel).includes(value as UserLevel);
+
 const toNumber = (value: string | null) => {
   if (!value) return null;
   const parsed = Number(value);
@@ -26,6 +29,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const search = searchParams.get("search")?.trim();
   const difficulty = searchParams.get("difficulty");
+  const level = searchParams.get("level");
   const tag = searchParams.get("tag")?.trim();
   const includeUnpublished = searchParams.get("published") === "false";
   const userId = searchParams.get("userId")?.trim();
@@ -59,6 +63,10 @@ export async function GET(request: NextRequest) {
 
   if (isAllowedDifficulty(difficulty)) {
     where.difficulty = difficulty;
+  }
+
+  if (isAllowedLevel(level)) {
+    where.level = level as UserLevel;
   }
 
   if (tag) {
@@ -114,6 +122,7 @@ export async function GET(request: NextRequest) {
       slug: problem.slug,
       title: problem.title,
       difficulty: problem.difficulty,
+      level: problem.level,
       participantCount: problem.participantCount,
       successCount: problem.successCount,
       hasSubmission: problem.submissions.length > 0,
@@ -148,6 +157,7 @@ export async function GET(request: NextRequest) {
     slug: problem.slug,
     title: problem.title,
     difficulty: problem.difficulty,
+    level: problem.level,
     participantCount: problem.participantCount,
     successCount: problem.successCount,
     tags: problem.tags.map((entry) => entry.tag.name),

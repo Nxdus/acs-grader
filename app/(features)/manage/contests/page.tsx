@@ -53,12 +53,15 @@ import {
 
 const statusOptions = ["Upcoming", "Active", "Ended"] as const
 const visibilityOptions = ["Public", "Private"] as const
+const levelOptions = ["BEGINNER", "ADVANCED"] as const
 type ContestStatus = (typeof statusOptions)[number]
+type UserLevel = (typeof levelOptions)[number]
 
 type ContestRecord = {
   id: number
   slug: string
   title: string
+  level: UserLevel
   description: string | null
   startAt: string
   endAt: string
@@ -113,6 +116,7 @@ export default function ManageContestsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [search, setSearch] = useState("")
+  const [levelFilter, setLevelFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all")
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt")
@@ -134,7 +138,7 @@ export default function ManageContestsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, statusFilter, visibilityFilter, sortKey, sortDirection])
+  }, [search, levelFilter, statusFilter, visibilityFilter, sortKey, sortDirection])
 
   const fetchContests = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
@@ -148,6 +152,9 @@ export default function ManageContestsPage() {
         }
         if (statusFilter !== "all") {
           params.set("status", statusFilter)
+        }
+        if (levelFilter !== "all") {
+          params.set("level", levelFilter)
         }
         if (visibilityFilter === "Public") {
           params.set("public", "true")
@@ -178,7 +185,7 @@ export default function ManageContestsPage() {
         setIsLoading(false)
       }
     },
-    [pageSize, search, sortDirection, sortKey, statusFilter, visibilityFilter]
+    [levelFilter, pageSize, search, sortDirection, sortKey, statusFilter, visibilityFilter]
   )
 
   useEffect(() => {
@@ -227,6 +234,7 @@ export default function ManageContestsPage() {
 
   function handleResetFilters() {
     setSearch("")
+    setLevelFilter("all")
     setStatusFilter("all")
     setVisibilityFilter("all")
   }
@@ -307,6 +315,19 @@ export default function ManageContestsPage() {
                   className="pl-8"
                 />
               </div>
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All levels</SelectItem>
+                  {levelOptions.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level === "BEGINNER" ? "Beginner" : "Advanced"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Status" />
@@ -350,6 +371,7 @@ export default function ManageContestsPage() {
                       </button>
                     </TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Level</TableHead>
                     <TableHead>Visibility</TableHead>
                     <TableHead>Scoring</TableHead>
                     <TableHead>Problems</TableHead>
@@ -387,7 +409,7 @@ export default function ManageContestsPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
                         <div className="flex justify-center items-center w-full">
                           <Spinner />
                         </div>
@@ -395,13 +417,13 @@ export default function ManageContestsPage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
                         {error}
                       </TableCell>
                     </TableRow>
                   ) : contests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
                         No contests found. Adjust filters or create a new contest.
                       </TableCell>
                     </TableRow>
@@ -417,6 +439,11 @@ export default function ManageContestsPage() {
                         <TableCell>
                           <Badge className={statusBadgeClassname(contest.status)} variant="outline">
                             {contest.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {contest.level === "BEGINNER" ? "Beginner" : "Advanced"}
                           </Badge>
                         </TableCell>
                         <TableCell>
