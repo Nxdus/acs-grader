@@ -18,6 +18,14 @@ export const Role = {
 export type Role = (typeof Role)[keyof typeof Role]
 
 
+export const UserLevel = {
+  BEGINNER: 'BEGINNER',
+  ADVANCED: 'ADVANCED'
+} as const
+
+export type UserLevel = (typeof UserLevel)[keyof typeof UserLevel]
+
+
 export const Difficulty = {
   EASY: 'EASY',
   MEDIUM: 'MEDIUM',

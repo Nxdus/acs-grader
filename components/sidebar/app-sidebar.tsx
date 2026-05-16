@@ -19,6 +19,11 @@ import {
 import { useSession } from "@/lib/auth-client"
 import Image from "next/image"
 
+type UserLevel = "BEGINNER" | "ADVANCED"
+
+function normalizeUserLevel(level: string | null | undefined): UserLevel {
+  return level === "ADVANCED" ? "ADVANCED" : "BEGINNER"
+}
 
 const navbarMenu = {
   navMain: [
@@ -54,6 +59,9 @@ const navbarMenu = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { data: session, isPending } = useSession();
+  const user = session?.user
+    ? { ...session.user, level: normalizeUserLevel(session.user.level) }
+    : null
 
   return (
     <Sidebar className="select-none" collapsible="icon" {...props}>
@@ -80,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <RoleNav role={session?.user?.role} />
       </SidebarContent>
       <SidebarFooter>
-        {isPending ? <NavUserSkeleton /> : session?.user ? <NavUser user={session.user} /> : null}
+        {isPending ? <NavUserSkeleton /> : user ? <NavUser user={user} /> : null}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

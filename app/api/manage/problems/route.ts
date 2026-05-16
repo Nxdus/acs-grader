@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Difficulty, Prisma } from "@/generated/prisma/client";
+import { Difficulty, Prisma, UserLevel } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 const sortableFields = new Set([
@@ -65,6 +65,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const search = normalizeString(url.searchParams.get("search"));
     const difficulty = url.searchParams.get("difficulty");
+    const level = url.searchParams.get("level");
     const published = url.searchParams.get("published");
     const sort = url.searchParams.get("sort") ?? "updatedAt";
     const direction = url.searchParams.get("dir") === "asc" ? "asc" : "desc";
@@ -88,6 +89,9 @@ export async function GET(request: Request) {
       Object.values(Difficulty).includes(difficulty as Difficulty)
         ? { difficulty: difficulty as Difficulty }
         : {}),
+      ...(level && Object.values(UserLevel).includes(level as UserLevel)
+        ? { level: level as UserLevel }
+        : {}),
       ...(published === "true" ? { isPublished: true } : {}),
       ...(published === "false" ? { isPublished: false } : {}),
       ...(unassigned ? { contestProblems: { none: {} } } : {}),
@@ -109,6 +113,7 @@ export async function GET(request: Request) {
             id: true,
             slug: true,
             title: true,
+            level: true,
             difficulty: true,
             isPublished: true,
             participantCount: true,
@@ -144,6 +149,7 @@ export async function GET(request: Request) {
       id: problem.id,
       slug: problem.slug,
       title: problem.title,
+      level: problem.level,
       difficulty: problem.difficulty,
       isPublished: problem.isPublished,
       participantCount: problem.participantCount,
@@ -181,6 +187,7 @@ export async function POST(request: Request) {
     const title = normalizeString(body?.title);
     const slug = normalizeSlug(body?.slug);
     const difficulty = body?.difficulty;
+    const level = body?.level;
     const description =
       typeof body?.description === "string" ? body.description : null;
     const constraints =
@@ -207,6 +214,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
+      return NextResponse.json(
+        { error: "Invalid level." },
+        { status: 400 },
+      );
+    }
+
     const allowedLanguageIds = normalizeAllowedLanguages(
       body?.allowedLanguageIds,
     );
@@ -224,12 +238,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid contest id." }, { status: 400 });
     }
 
+    if (contestId && Number.isFinite(contestId)) {
+      const contest = await prisma.contest.findUnique({
+        where: { id: contestId },
+        select: { level: true },
+      });
+      const problemLevel = (level as UserLevel | undefined) ?? UserLevel.BEGINNER;
+
+      if (!contest) {
+        return NextResponse.json({ error: "Contest not found." }, { status: 404 });
+      }
+
+      if (contest.level !== problemLevel) {
+        return NextResponse.json(
+          { error: "Problem level must match contest level." },
+          { status: 400 },
+        );
+      }
+    }
+
     const problem = await prisma.$transaction(async (tx) => {
       const created = await tx.problem.create({
         data: {
           slug,
           title,
           description,
+          ...(level ? { level: level as UserLevel } : {}),
           difficulty: difficulty as Difficulty,
           constraints,
           inputFormat,
@@ -258,6 +292,7 @@ export async function POST(request: Request) {
           id: true,
           slug: true,
           title: true,
+          level: true,
           difficulty: true,
           isPublished: true,
           createdAt: true,

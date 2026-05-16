@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Role } from "@/generated/prisma/client";
+import { Role, UserLevel } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 type RouteParams = {
@@ -22,6 +22,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         name: true,
         email: true,
         role: true,
+        level: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -48,11 +49,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const name = typeof body?.name === "string" ? body.name.trim() : undefined;
     const email = normalizeEmail(body?.email);
     const role = typeof body?.role === "string" ? body.role : undefined;
+    const level = typeof body?.level === "string" ? body.level : undefined;
     const emailVerified =
       typeof body?.emailVerified === "boolean" ? body.emailVerified : undefined;
 
     if (role && !Object.values(Role).includes(role as Role)) {
       return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+    }
+
+    if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
+      return NextResponse.json({ error: "Invalid level." }, { status: 400 });
     }
 
     const user = await prisma.user.update({
@@ -61,6 +67,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         ...(name ? { name } : {}),
         ...(email ? { email } : {}),
         ...(role ? { role: role as Role } : {}),
+        ...(level ? { level: level as UserLevel } : {}),
         ...(emailVerified === undefined ? {} : { emailVerified }),
         updatedAt: new Date(),
       },
@@ -69,6 +76,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         name: true,
         email: true,
         role: true,
+        level: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,

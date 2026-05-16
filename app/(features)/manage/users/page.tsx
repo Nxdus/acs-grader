@@ -60,9 +60,11 @@ import {
 } from "lucide-react"
 
 const roleOptions = ["ADMIN", "STAFF", "USER"] as const
+const levelOptions = ["BEGINNER", "ADVANCED"] as const
 const statusOptions = ["Verified", "Unverified"] as const
 
 type UserRole = (typeof roleOptions)[number]
+type UserLevel = (typeof levelOptions)[number]
 type UserStatus = (typeof statusOptions)[number]
 
 type UserRecord = {
@@ -70,13 +72,14 @@ type UserRecord = {
   name: string
   email: string
   role: UserRole
+  level: UserLevel
   emailVerified: boolean
   createdAt: string
   updatedAt: string
   image?: string | null
 }
 
-type SortKey = "name" | "email" | "role" | "emailVerified" | "createdAt" | "updatedAt"
+type SortKey = "name" | "email" | "role" | "level" | "emailVerified" | "createdAt" | "updatedAt"
 
 type UserResponse = {
   items: UserRecord[]
@@ -153,6 +156,7 @@ export default function ManageUsersPage() {
     name: "",
     email: "",
     role: roleOptions[2] as UserRole,
+    level: levelOptions[0] as UserLevel,
     status: statusOptions[1] as UserStatus,
   })
   const [formError, setFormError] = useState<string | null>(null)
@@ -240,6 +244,7 @@ export default function ManageUsersPage() {
       name: "",
       email: "",
       role: roleOptions[2],
+      level: levelOptions[0],
       status: statusOptions[1],
     })
     setFormError(null)
@@ -252,6 +257,7 @@ export default function ManageUsersPage() {
       name: user.name,
       email: user.email,
       role: user.role,
+      level: user.level,
       status: statusFromUser(user),
     })
     setFormError(null)
@@ -272,6 +278,7 @@ export default function ManageUsersPage() {
         name: formState.name.trim(),
         email: formState.email.trim(),
         role: formState.role,
+        level: formState.level,
         emailVerified: statusToEmailVerified(formState.status),
       }
 
@@ -487,6 +494,15 @@ export default function ManageUsersPage() {
                     <TableHead>
                       <button
                         className="inline-flex items-center gap-2 font-semibold"
+                        onClick={() => toggleSort("level")}
+                      >
+                        Level
+                        <SortIcon active={sortKey === "level"} direction={sortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        className="inline-flex items-center gap-2 font-semibold"
                         onClick={() => toggleSort("emailVerified")}
                       >
                         Verified
@@ -517,7 +533,7 @@ export default function ManageUsersPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         <div className="flex justify-center items-center w-full">
                           <Spinner/>
                         </div>
@@ -525,13 +541,13 @@ export default function ManageUsersPage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         {error}
                       </TableCell>
                     </TableRow>
                   ) : users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                         No users found. Adjust filters or create a new user.
                       </TableCell>
                     </TableRow>
@@ -555,6 +571,9 @@ export default function ManageUsersPage() {
                         <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
                         <TableCell>
                           <Badge className={user.role === "ADMIN" ? "bg-red-500 text-white" : user.role === "STAFF" ? "bg-blue-500 text-white" : "bg-primary text-secondary"} variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.level === "BEGINNER" ? "Beginner" : "Advanced"}</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge className={statusFromUser(user) === "Verified" ? 'border-green-400 text-green-500' : 'border-red-400 text-red-500'} variant="outline">
@@ -689,6 +708,28 @@ export default function ManageUsersPage() {
                   {roleOptions.map((role) => (
                     <SelectItem key={role} value={role}>
                       {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium" htmlFor="user-level">
+                Level
+              </label>
+              <Select
+                value={formState.level}
+                onValueChange={(value) =>
+                  setFormState((prev) => ({ ...prev, level: value as UserLevel }))
+                }
+              >
+                <SelectTrigger id="user-level" className="w-full">
+                  <SelectValue placeholder="Select level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {levelOptions.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level === "BEGINNER" ? "Beginner" : "Advanced"}
                     </SelectItem>
                   ))}
                 </SelectContent>

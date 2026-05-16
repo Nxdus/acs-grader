@@ -37,7 +37,6 @@ const sortOptions = [
 
 type SortKey = (typeof sortOptions)[number]["value"]
 type SortDirection = "asc" | "desc"
-type DifficultyFilter = "all" | "EASY" | "MEDIUM" | "HARD"
 type ProgressFilter = "all" | "solved" | "attempted" | "unsolved"
 
 export default function Problems() {
@@ -50,9 +49,9 @@ export default function Problems() {
     const [search, setSearch] = useState("")
     const [sortKey, setSortKey] = useState<SortKey>("createdAt")
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
-    const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all")
     const [progressFilter, setProgressFilter] = useState<ProgressFilter>("all")
     const { data: session } = useSession()
+    const userLevel = session?.user?.level ?? "BEGINNER"
 
     useEffect(() => {
         const loadTags = async () => {
@@ -81,9 +80,7 @@ export default function Problems() {
                 if (selectedTopic !== ALL_TOPICS) {
                     params.set("tag", selectedTopic)
                 }
-                if (difficultyFilter !== "all") {
-                    params.set("difficulty", difficultyFilter)
-                }
+                params.set("level", userLevel)
                 params.set("sort", sortKey)
                 params.set("dir", sortDirection)
                 if (session?.user?.id) {
@@ -111,7 +108,7 @@ export default function Problems() {
         loadTasks()
 
         return () => controller.abort()
-    }, [difficultyFilter, search, selectedTopic, session?.user?.id, sortDirection, sortKey])
+    }, [search, selectedTopic, session?.user?.id, sortDirection, sortKey, userLevel])
 
     const visibleProblems = useMemo(
         () =>
@@ -174,13 +171,7 @@ export default function Problems() {
                                     <Button size="icon" variant="outline" aria-label="Filter problems"><Funnel /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-44">
-                                    <DropdownMenuLabel>Difficulty</DropdownMenuLabel>
-                                    <DropdownMenuRadioGroup value={difficultyFilter} onValueChange={(value) => setDifficultyFilter(value as DifficultyFilter)}>
-                                        <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="EASY">Easy</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="MEDIUM">Medium</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="HARD">Hard</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuLabel>Level: {userLevel === "ADVANCED" ? "Advanced" : "Beginner"}</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuLabel>Progress</DropdownMenuLabel>
                                     <DropdownMenuRadioGroup value={progressFilter} onValueChange={(value) => setProgressFilter(value as ProgressFilter)}>

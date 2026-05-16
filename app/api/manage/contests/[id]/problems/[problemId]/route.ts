@@ -33,6 +33,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             id: true,
             slug: true,
             title: true,
+            level: true,
             difficulty: true,
           },
         },

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Difficulty } from "@/generated/prisma/client"
+import { Difficulty, UserLevel } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 
 type RouteParams = {
@@ -84,6 +84,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       id: problem.id,
       slug: problem.slug,
       title: problem.title,
+      level: problem.level,
       description: problem.description,
       difficulty: problem.difficulty,
       constraints: problem.constraints,
@@ -124,6 +125,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const title = normalizeString(body?.title)
     const slug = normalizeSlug(body?.slug)
     const difficulty = body?.difficulty
+    const level = body?.level
     const description = typeof body?.description === "string" ? body.description : null
     const constraints = typeof body?.constraints === "string" ? body.constraints : null
     const inputFormat = typeof body?.inputFormat === "string" ? body.inputFormat : null
@@ -135,6 +137,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Invalid difficulty." }, { status: 400 })
     }
 
+    if (level && !Object.values(UserLevel).includes(level as UserLevel)) {
+      return NextResponse.json({ error: "Invalid level." }, { status: 400 })
+    }
+
     const contestId =
       contestIdValue === null
         ? null
@@ -144,6 +150,25 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (contestId !== null && contestId !== undefined && !Number.isFinite(contestId)) {
       return NextResponse.json({ error: "Invalid contest id." }, { status: 400 })
+    }
+
+    if (contestId && Number.isFinite(contestId)) {
+      const [contest, existingProblem] = await Promise.all([
+        prisma.contest.findUnique({ where: { id: contestId }, select: { level: true } }),
+        prisma.problem.findUnique({ where: { id: problemId }, select: { level: true } }),
+      ])
+      const problemLevel = (level as UserLevel | undefined) ?? existingProblem?.level
+
+      if (!contest || !problemLevel) {
+        return NextResponse.json({ error: "Contest or problem not found." }, { status: 404 })
+      }
+
+      if (contest.level !== problemLevel) {
+        return NextResponse.json(
+          { error: "Problem level must match contest level." },
+          { status: 400 },
+        )
+      }
     }
 
     const allowedLanguageIds = normalizeAllowedLanguages(body?.allowedLanguageIds)
@@ -164,6 +189,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         data: {
           ...(title ? { title } : {}),
           ...(slug ? { slug } : {}),
+          ...(level ? { level: level as UserLevel } : {}),
           ...(difficulty ? { difficulty: difficulty as Difficulty } : {}),
           description,
           constraints,
@@ -195,6 +221,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           id: true,
           slug: true,
           title: true,
+          level: true,
           difficulty: true,
           isPublished: true,
           createdAt: true,

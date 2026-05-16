@@ -1,0 +1,2 @@
+ALTER TABLE "problem" ADD COLUMN "level" "UserLevel" NOT NULL DEFAULT 'BEGINNER';
+ALTER TABLE "contest" ADD COLUMN "level" "UserLevel" NOT NULL DEFAULT 'BEGINNER';

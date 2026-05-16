@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, LogOut, Pencil } from "lucide-react"
+import { ChevronRight, GraduationCap, LogOut, Pencil } from "lucide-react"
 import { useState } from "react"
 
 import {
@@ -28,6 +28,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -35,6 +42,13 @@ import {
 } from "@/components/ui/sidebar"
 import { signOut, updateUser } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
+
+type UserLevel = "BEGINNER" | "ADVANCED"
+
+const userLevelOptions: { value: UserLevel; label: string }[] = [
+  { value: "BEGINNER", label: "Beginner" },
+  { value: "ADVANCED", label: "Advanced" },
+]
 
 export function NavUserSkeleton() {
   return (
@@ -65,6 +79,7 @@ export function NavUser({
     email: string;
     emailVerified: boolean;
     name: string;
+    level?: UserLevel | null;
     image?: string | null | undefined;
   }
 }) {
@@ -74,6 +89,10 @@ export function NavUser({
   const [displayName, setDisplayName] = useState(user.name)
   const [nameDialogError, setNameDialogError] = useState<string | null>(null)
   const [isNameSubmitting, setIsNameSubmitting] = useState(false)
+  const [isLevelDialogOpen, setIsLevelDialogOpen] = useState(false)
+  const [level, setLevel] = useState<UserLevel>(user.level ?? "BEGINNER")
+  const [levelDialogError, setLevelDialogError] = useState<string | null>(null)
+  const [isLevelSubmitting, setIsLevelSubmitting] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -85,6 +104,12 @@ export function NavUser({
     setDisplayName(user.name)
     setNameDialogError(null)
     setIsNameDialogOpen(true)
+  }
+
+  const handleOpenLevelDialog = () => {
+    setLevel(user.level ?? "BEGINNER")
+    setLevelDialogError(null)
+    setIsLevelDialogOpen(true)
   }
 
   const handleSaveDisplayName = async () => {
@@ -111,6 +136,27 @@ export function NavUser({
 
     setIsNameDialogOpen(false)
     setNameDialogError(null)
+    router.refresh()
+  }
+
+  const handleSaveLevel = async () => {
+    if (level === user.level) {
+      setIsLevelDialogOpen(false)
+      setLevelDialogError(null)
+      return
+    }
+
+    setIsLevelSubmitting(true)
+    const res = await updateUser({ level })
+    setIsLevelSubmitting(false)
+
+    if (res.error) {
+      setLevelDialogError(res.error.message || "Something went wrong.")
+      return
+    }
+
+    setIsLevelDialogOpen(false)
+    setLevelDialogError(null)
     router.refresh()
   }
 
@@ -156,6 +202,10 @@ export function NavUser({
             <DropdownMenuItem onClick={handleOpenNameDialog}>
               <Pencil />
               Change display name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenLevelDialog}>
+              <GraduationCap />
+              Change level
             </DropdownMenuItem>
             <hr />
             <DropdownMenuItem onClick={handleSignOut}>
@@ -209,6 +259,53 @@ export function NavUser({
               disabled={isNameSubmitting}
             >
               {isNameSubmitting ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={isLevelDialogOpen}
+        onOpenChange={(open) => {
+          setIsLevelDialogOpen(open)
+          if (!open) {
+            setLevelDialogError(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change level</DialogTitle>
+            <DialogDescription>
+              Update the contest and problem level shown to you.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium" htmlFor="user-level">
+              Level
+            </label>
+            <Select value={level} onValueChange={(value) => setLevel(value as UserLevel)}>
+              <SelectTrigger id="user-level" className="w-full">
+                <SelectValue placeholder="Select your level" />
+              </SelectTrigger>
+              <SelectContent>
+                {userLevelOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {levelDialogError && (
+              <p className="text-sm text-destructive">{levelDialogError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={handleSaveLevel}
+              disabled={isLevelSubmitting}
+            >
+              {isLevelSubmitting ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

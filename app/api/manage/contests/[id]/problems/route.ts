@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
             id: true,
             slug: true,
             title: true,
+            level: true,
             difficulty: true,
           },
         },
@@ -77,6 +78,22 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Problem not found." }, { status: 404 })
     }
 
+    const [contest, problem] = await Promise.all([
+      prisma.contest.findUnique({ where: { id: contestId }, select: { level: true } }),
+      prisma.problem.findUnique({ where: { id: problemId }, select: { level: true } }),
+    ])
+
+    if (!contest || !problem) {
+      return NextResponse.json({ error: "Contest or problem not found." }, { status: 404 })
+    }
+
+    if (contest.level !== problem.level) {
+      return NextResponse.json(
+        { error: "Problem level must match contest level." },
+        { status: 400 },
+      )
+    }
+
     const existing = await prisma.contestProblem.findUnique({
       where: { contestId_problemId: { contestId, problemId } },
     })
@@ -112,6 +129,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             id: true,
             slug: true,
             title: true,
+            level: true,
             difficulty: true,
           },
         },

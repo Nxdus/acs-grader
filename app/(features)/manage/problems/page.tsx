@@ -52,14 +52,17 @@ import {
 } from "lucide-react"
 
 const difficultyOptions = ["EASY", "MEDIUM", "HARD"] as const
+const levelOptions = ["BEGINNER", "ADVANCED"] as const
 const publishOptions = ["Published", "Draft"] as const
 
 type Difficulty = (typeof difficultyOptions)[number]
+type UserLevel = (typeof levelOptions)[number]
 
 type ProblemRecord = {
   id: number
   slug: string
   title: string
+  level: UserLevel
   difficulty: Difficulty
   isPublished: boolean
   participantCount: number
@@ -137,6 +140,7 @@ export default function ManageProblemsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [search, setSearch] = useState("")
+  const [levelFilter, setLevelFilter] = useState<string>("all")
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all")
   const [publishFilter, setPublishFilter] = useState<string>("all")
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt")
@@ -158,7 +162,7 @@ export default function ManageProblemsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, difficultyFilter, publishFilter, sortKey, sortDirection])
+  }, [search, levelFilter, difficultyFilter, publishFilter, sortKey, sortDirection])
 
   const fetchProblems = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
@@ -172,6 +176,9 @@ export default function ManageProblemsPage() {
         }
         if (difficultyFilter !== "all") {
           params.set("difficulty", difficultyFilter)
+        }
+        if (levelFilter !== "all") {
+          params.set("level", levelFilter)
         }
         if (publishFilter === "Published") {
           params.set("published", "true")
@@ -202,7 +209,7 @@ export default function ManageProblemsPage() {
         setIsLoading(false)
       }
     },
-    [difficultyFilter, pageSize, publishFilter, search, sortDirection, sortKey]
+    [difficultyFilter, levelFilter, pageSize, publishFilter, search, sortDirection, sortKey]
   )
 
   useEffect(() => {
@@ -253,6 +260,7 @@ export default function ManageProblemsPage() {
 
   function handleResetFilters() {
     setSearch("")
+    setLevelFilter("all")
     setDifficultyFilter("all")
     setPublishFilter("all")
   }
@@ -334,12 +342,25 @@ export default function ManageProblemsPage() {
                   className="pl-8"
                 />
               </div>
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All levels</SelectItem>
+                  {levelOptions.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level === "BEGINNER" ? "Beginner" : "Advanced"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All levels</SelectItem>
+                  <SelectItem value="all">All difficulties</SelectItem>
                   {difficultyOptions.map((difficulty) => (
                     <SelectItem key={difficulty} value={difficulty}>
                       {difficulty}
@@ -377,6 +398,9 @@ export default function ManageProblemsPage() {
                       </button>
                     </TableHead>
                     <TableHead>
+                      Level
+                    </TableHead>
+                    <TableHead>
                       <button
                         className="inline-flex items-center gap-2 font-semibold"
                         onClick={() => toggleSort("difficulty")}
@@ -404,7 +428,7 @@ export default function ManageProblemsPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         <div className="flex justify-center items-center w-full">
                           <Spinner />
                         </div>
@@ -412,13 +436,13 @@ export default function ManageProblemsPage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         {error}
                       </TableCell>
                     </TableRow>
                   ) : problems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         No problems found. Adjust filters or create a new problem.
                       </TableCell>
                     </TableRow>
@@ -430,6 +454,11 @@ export default function ManageProblemsPage() {
                             <div className="font-medium">{problem.title}</div>
                             <div className="text-xs text-muted-foreground">{problem.slug}</div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {problem.level === "BEGINNER" ? "Beginner" : "Advanced"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge className={getDifficultyMeta(problem.difficulty).className} variant={difficultyBadgeVariant(problem.difficulty)}>
