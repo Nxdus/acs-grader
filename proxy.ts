@@ -9,7 +9,7 @@ export async function proxy(request: NextRequest) {
     });
 
     const { pathname } = request.nextUrl
-    const ALLOW_PATHS = ["/sign-in", "/sign-up", "/api", "/_next", "/favicon.ico", "/images"]
+    const ALLOW_PATHS = ["/", "/sign-in", "/sign-up", "/api", "/_next", "/favicon.ico", "/images", "/models"]
 
     const isAllowed = ALLOW_PATHS.some(path =>
         pathname === path || pathname.startsWith(path + "/")
@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
 
 
     if (!session) {
-        return NextResponse.redirect(new URL('/sign-in', request.url))
+        return NextResponse.redirect(new URL('/', request.url))
     }
 
     return NextResponse.next()
