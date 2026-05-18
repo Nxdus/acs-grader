@@ -198,9 +198,9 @@ export default function ManageProblemEditorPage() {
     () =>
       Boolean(
         state.description.trim() &&
-          state.constraints.trim() &&
-          state.inputFormat.trim() &&
-          state.outputFormat.trim()
+        state.constraints.trim() &&
+        state.inputFormat.trim() &&
+        state.outputFormat.trim()
       ) && !isGenerating,
     [
       state.description,
@@ -249,11 +249,11 @@ export default function ManageProblemEditorPage() {
         testCases:
           detail.testCases.length > 0
             ? buildFixedTestCases(detail.testCases.map((testCase) => ({
-                id: String(testCase.id),
-                input: testCase.input,
-                output: testCase.output,
-                isSample: testCase.isSample,
-              })))
+              id: String(testCase.id),
+              input: testCase.input,
+              output: testCase.output,
+              isSample: testCase.isSample,
+            })))
             : buildFixedTestCases(),
       })
     } catch (err) {
@@ -618,14 +618,8 @@ export default function ManageProblemEditorPage() {
       />
 
       <div className="flex min-w-0 flex-col gap-4 px-4 py-2">
-        <div className="flex min-w-0 flex-col gap-4 py-2 xl:flex-row xl:items-end xl:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Problem editor</p>
-            <h1 className="truncate text-2xl font-semibold tracking-tight">
-              {state.title || "Untitled problem"}
-            </h1>
-          </div>
-          <div className="flex min-w-0 flex-col-reverse gap-4 xl:items-end">
+        <div className="min-w-0 gap-4 py-2">
+          <div className="mt-4 flex min-w-0 flex-col gap-4 py-4">
             <input
               ref={importInputRef}
               type="file"
@@ -633,210 +627,229 @@ export default function ManageProblemEditorPage() {
               className="hidden"
               onChange={handleImportFile}
             />
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium" htmlFor="problem-level">
-                  Level
-                </label>
-                <Select
-                  value={state.level}
-                  onValueChange={(value) => updateState({ level: value as UserLevel })}
-                >
-                  <SelectTrigger id="problem-level" className="w-full">
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {levelOptions.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level === "BEGINNER" ? "Beginner" : "Advanced"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex lg:flex-row lg:items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Problem editor</p>
+                <h1 className="truncate text-2xl font-semibold tracking-tight">
+                  {state.title || "Untitled problem"}
+                </h1>
               </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium" htmlFor="problem-difficulty">
-                  Difficulty
-                </label>
-                <Select
-                  value={state.difficulty}
-                  onValueChange={(value) => updateState({ difficulty: value as Difficulty })}
-                >
-                  <SelectTrigger id="problem-difficulty" className="w-full">
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {difficultyOptions.map((difficulty) => (
-                      <SelectItem key={difficulty} value={difficulty}>
-                        {difficulty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium" htmlFor="problem-memory-limit">
-                  Memory limit (MB)
-                </label>
-                <Input
-                  id="problem-memory-limit"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={state.memoryLimit}
-                  onChange={(event) => updateState({ memoryLimit: event.target.value })}
-                  placeholder="256"
-                />
-              </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium" htmlFor="problem-status">
-                  Status
-                </label>
-                <Select
-                  value={state.isPublished ? "Published" : "Draft"}
-                  onValueChange={(value) => updateState({ isPublished: value === "Published" })}
-                >
-                  <SelectTrigger id="problem-status" className="w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Published">Published</SelectItem>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium" htmlFor="problem-contest">
-                  Contest
-                </label>
-                <Select
-                  value={state.contestId}
-                  onValueChange={(value) =>
-                    updateState({ contestId: value === "__none__" ? "" : value })
-                  }
-                >
-                  <SelectTrigger id="problem-contest" className="w-full">
-                    <SelectValue
-                      placeholder={contestLoading ? "Loading..." : "Select contest"}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">None</SelectItem>
-                    {contestError ? (
-                      <SelectItem value="__error__" disabled>
-                        {contestError}
-                      </SelectItem>
-                    ) : contestOptions.length === 0 ? (
-                      <SelectItem value="__empty__" disabled>
-                        No contests found
-                      </SelectItem>
-                    ) : (
-                      contestOptions.map((contest) => (
-                        <SelectItem key={contest.id} value={String(contest.id)}>
-                          {contest.title} ({contest.level === "BEGINNER" ? "Beginner" : "Advanced"})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium">Allowed languages</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full min-w-0 justify-between">
-                      <span className="truncate">
-                        {selectedLanguageNames.length > 0
-                          ? selectedLanguageNames.join(", ")
-                          : "Select languages"}
-                      </span>
-                      <ChevronDown className="size-4 opacity-60" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
-                    {languageLoading ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
-                    ) : languageError ? (
-                      <div className="px-3 py-2 text-xs text-destructive">{languageError}</div>
-                    ) : languageOptions.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        No languages found.
-                      </div>
-                    ) : (
-                      languageOptions.map((lang) => (
-                        <DropdownMenuCheckboxItem
-                          key={lang.id}
-                          checked={selectedLanguageIds.includes(lang.id)}
-                          onCheckedChange={() => toggleLanguage(lang.id)}
-                        >
-                          {lang.name}
-                        </DropdownMenuCheckboxItem>
-                      ))
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="grid gap-2 min-w-0">
-                <label className="text-sm font-medium">Tags</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full min-w-0 justify-between">
-                      <span className="truncate">
-                        {selectedTags.length > 0 ? selectedTags.join(", ") : "Select tags"}
-                      </span>
-                      <ChevronDown className="size-4 opacity-60" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
-                    {tagLoading ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
-                    ) : tagError ? (
-                      <div className="px-3 py-2 text-xs text-destructive">{tagError}</div>
-                    ) : tagOptions.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        No tags found.
-                      </div>
-                    ) : (
-                      tagOptions.map((tag) => (
-                        <DropdownMenuCheckboxItem
-                          key={tag.id}
-                          checked={selectedTags.includes(tag.name)}
-                          onCheckedChange={() => toggleTag(tag.name)}
-                        >
-                          {tag.name}
-                        </DropdownMenuCheckboxItem>
-                      ))
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="flex flex-col self-end gap-4">
+                <div className="flex flex-wrap items-center self-end gap-2">
+                  <Button variant="outline" onClick={() => router.push("/manage/problems")}>
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={isImporting}
+                  >
+                    {isImporting ? <Spinner /> : <FileUp />}
+                    Import testcases
+                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Spinner /> : "Save"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground hidden lg:block">
+                  Import format: JSON with <code>version</code> and exactly {FIXED_TEST_CASE_COUNT} items in <code>testCases</code>.{" "}
+                  <Link className="underline underline-offset-4" href="/api/manage/problems/import?type=testcases">
+                    Download template
+                  </Link>
+                </p>
               </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-              <Button variant="outline" onClick={() => router.push("/manage/problems")}>
-                Back
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => importInputRef.current?.click()}
-                disabled={isImporting}
-              >
-                {isImporting ? <Spinner /> : <FileUp />}
-                Import testcases
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? <Spinner /> : "Save"}
-              </Button>
+            <p className="text-xs text-muted-foreground lg:hidden">
+              Import format: JSON with <code>version</code> and exactly {FIXED_TEST_CASE_COUNT} items in <code>testCases</code>.{" "}
+              <Link className="underline underline-offset-4" href="/api/manage/problems/import?type=testcases">
+                Download template
+              </Link>
+            </p>
+            <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="problem-level">
+                    Level
+                  </label>
+                  <Select
+                    value={state.level}
+                    onValueChange={(value) => updateState({ level: value as UserLevel })}
+                  >
+                    <SelectTrigger id="problem-level" className="w-full">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {levelOptions.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level === "BEGINNER" ? "Beginner" : "Advanced"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="problem-difficulty">
+                    Difficulty
+                  </label>
+                  <Select
+                    value={state.difficulty}
+                    onValueChange={(value) => updateState({ difficulty: value as Difficulty })}
+                  >
+                    <SelectTrigger id="problem-difficulty" className="w-full">
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {difficultyOptions.map((difficulty) => (
+                        <SelectItem key={difficulty} value={difficulty}>
+                          {difficulty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="problem-memory-limit">
+                    Memory limit (MB)
+                  </label>
+                  <Input
+                    id="problem-memory-limit"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={state.memoryLimit}
+                    onChange={(event) => updateState({ memoryLimit: event.target.value })}
+                    placeholder="256"
+                  />
+                </div>
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="problem-status">
+                    Status
+                  </label>
+                  <Select
+                    value={state.isPublished ? "Published" : "Draft"}
+                    onValueChange={(value) => updateState({ isPublished: value === "Published" })}
+                  >
+                    <SelectTrigger id="problem-status" className="w-full">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Published">Published</SelectItem>
+                      <SelectItem value="Draft">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3 sm:col-span-2 lg:col-span-2">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="problem-contest">
+                    Contest
+                  </label>
+                  <Select
+                    value={state.contestId}
+                    onValueChange={(value) =>
+                      updateState({ contestId: value === "__none__" ? "" : value })
+                    }
+                  >
+                    <SelectTrigger id="problem-contest" className="w-full">
+                      <SelectValue
+                        placeholder={contestLoading ? "Loading..." : "Select contest"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {contestError ? (
+                        <SelectItem value="__error__" disabled>
+                          {contestError}
+                        </SelectItem>
+                      ) : contestOptions.length === 0 ? (
+                        <SelectItem value="__empty__" disabled>
+                          No contests found
+                        </SelectItem>
+                      ) : (
+                        contestOptions.map((contest) => (
+                          <SelectItem key={contest.id} value={String(contest.id)}>
+                            {contest.title} ({contest.level === "BEGINNER" ? "Beginner" : "Advanced"})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid min-w-0 gap-3">
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Allowed languages</label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full min-w-0 justify-between">
+                        <span className="truncate">
+                          {selectedLanguageNames.length > 0
+                            ? selectedLanguageNames.join(", ")
+                            : "Select languages"}
+                        </span>
+                        <ChevronDown className="size-4 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
+                      {languageLoading ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
+                      ) : languageError ? (
+                        <div className="px-3 py-2 text-xs text-destructive">{languageError}</div>
+                      ) : languageOptions.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          No languages found.
+                        </div>
+                      ) : (
+                        languageOptions.map((lang) => (
+                          <DropdownMenuCheckboxItem
+                            key={lang.id}
+                            checked={selectedLanguageIds.includes(lang.id)}
+                            onCheckedChange={() => toggleLanguage(lang.id)}
+                          >
+                            {lang.name}
+                          </DropdownMenuCheckboxItem>
+                        ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="grid min-w-0 gap-2 bg-background/60 py-3">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tags</label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full min-w-0 justify-between">
+                        <span className="truncate">
+                          {selectedTags.length > 0 ? selectedTags.join(", ") : "Select tags"}
+                        </span>
+                        <ChevronDown className="size-4 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
+                      {tagLoading ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
+                      ) : tagError ? (
+                        <div className="px-3 py-2 text-xs text-destructive">{tagError}</div>
+                      ) : tagOptions.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          No tags found.
+                        </div>
+                      ) : (
+                        tagOptions.map((tag) => (
+                          <DropdownMenuCheckboxItem
+                            key={tag.id}
+                            checked={selectedTags.includes(tag.name)}
+                            onCheckedChange={() => toggleTag(tag.name)}
+                          >
+                            {tag.name}
+                          </DropdownMenuCheckboxItem>
+                        ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <p className="text-xs text-muted-foreground">
-          Import format: JSON with <code>version</code> and exactly {FIXED_TEST_CASE_COUNT} items in <code>testCases</code>.{" "}
-          <Link className="underline underline-offset-4" href="/api/manage/problems/import?type=testcases">
-            Download template
-          </Link>
-        </p>
       </div>
 
       <ResizablePanelGroup className="min-w-0 border-t">
