@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 
 import { SectionNavBar } from "@/components/sidebar/section-navbar"
@@ -151,6 +151,9 @@ export default function ManageProblemsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ProblemRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState<string | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -263,6 +266,50 @@ export default function ManageProblemsPage() {
     setLevelFilter("all")
     setDifficultyFilter("all")
     setPublishFilter("all")
+    setImportMessage(null)
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+
+    if (!file) {
+      return
+    }
+
+    setIsImporting(true)
+    setError(null)
+    setImportMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/manage/problems/import", {
+        method: "POST",
+        body: formData,
+      })
+
+      const payload = (await response.json().catch(() => null)) as
+        | { createdCount?: number; items?: Array<{ title?: string }>; error?: string }
+        | null
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Failed to import problems.")
+      }
+
+      const createdCount = Number(payload?.createdCount ?? 0)
+      setImportMessage(
+        createdCount > 0
+          ? `Imported ${createdCount} problem${createdCount === 1 ? "" : "s"} successfully.`
+          : "Import completed.",
+      )
+      await fetchProblems(page)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to import problems.")
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   const statsDisplay = useMemo(
@@ -285,6 +332,13 @@ export default function ManageProblemsPage() {
       />
 
       <div className="container mx-auto flex flex-col gap-6 px-4 py-8">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Administration</p>
@@ -293,6 +347,13 @@ export default function ManageProblemsPage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Button variant="outline" onClick={handleResetFilters}>
                 Reset filters
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => importInputRef.current?.click()}
+                disabled={isImporting}
+              >
+                {isImporting ? "Importing..." : "Import problems"}
               </Button>
               <Button asChild className="gap-2">
                 <Link href="/manage/problems/new">
@@ -330,6 +391,12 @@ export default function ManageProblemsPage() {
               <CardTitle className="text-lg">Problem data table</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Search, filter, and manage problem content.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Import format: JSON with <code>version</code> and <code>problems[]</code>.{" "}
+                <Link className="underline underline-offset-4" href="/api/manage/problems/import">
+                  Download template
+                </Link>
               </p>
             </div>
             <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -384,6 +451,12 @@ export default function ManageProblemsPage() {
             </div>
           </CardHeader>
           <CardContent className="px-0">
+            {importMessage ? (
+              <div className="px-6 pb-2 text-sm text-emerald-600">{importMessage}</div>
+            ) : null}
+            {error ? (
+              <div className="px-6 pb-2 text-sm text-destructive">{error}</div>
+            ) : null}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

@@ -833,7 +833,7 @@ export default function ManageProblemEditorPage() {
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <p className="text-xs text-muted-foreground">
           Import format: JSON with <code>version</code> and exactly {FIXED_TEST_CASE_COUNT} items in <code>testCases</code>.{" "}
-          <Link className="underline underline-offset-4" href="/api/manage/problems/import">
+          <Link className="underline underline-offset-4" href="/api/manage/problems/import?type=testcases">
             Download template
           </Link>
         </p>
