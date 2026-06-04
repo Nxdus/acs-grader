@@ -28,12 +28,6 @@ function normalizeUserLevel(level: string | null | undefined): UserLevel {
 const navbarMenu = {
   navMain: [
     {
-      title: "Home",
-      url: "/",
-      icon: House,
-      isActive: true,
-    },
-    {
       title: "Problems",
       url: "/problems",
       icon: Grip,
