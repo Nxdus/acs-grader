@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { finishExpiredContests } from "@/lib/contest/finish";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -6,6 +7,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    await finishExpiredContests();
+
     const slug = (await params).slug;
 
     const leaderboard = await prisma.contestParticipant.findMany({

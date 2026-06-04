@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
+import { finishExpiredContests } from "@/lib/contest/finish";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -7,6 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    await finishExpiredContests();
+
     const userId = request.nextUrl.searchParams.get("userId")?.trim() || null;
     const problemInclude = {
       testCases: {

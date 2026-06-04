@@ -221,13 +221,28 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (contestSlug) {
     const contest = await prisma.contest.findUnique({
       where: { slug: contestSlug },
-      select: { id: true },
+      select: { id: true, startAt: true, endAt: true },
     });
 
     if (!contest) {
       return NextResponse.json(
         { error: "Contest not found." },
         { status: 404 },
+      );
+    }
+
+    const now = new Date();
+    if (contest.startAt > now) {
+      return NextResponse.json(
+        { error: "Contest has not started yet." },
+        { status: 403 },
+      );
+    }
+
+    if (contest.endAt < now) {
+      return NextResponse.json(
+        { error: "Contest has ended." },
+        { status: 403 },
       );
     }
 
