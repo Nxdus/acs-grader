@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth';
-import { headers } from 'next/headers';
 
 export async function proxy(request: NextRequest) {
     const session = await auth.api.getSession({
-        headers: await headers(),
+        headers: request.headers,
     });
 
     const { pathname } = request.nextUrl
@@ -15,14 +14,13 @@ export async function proxy(request: NextRequest) {
         pathname === path || pathname.startsWith(path + "/")
     )
 
+    if (session && (pathname === "/" || pathname === "/sign-in" || pathname === "/sign-up")) {
+        return NextResponse.redirect(new URL("/problems", request.url))
+    }
+
     if (isAllowed) {
         return NextResponse.next()
     }
-
-    if (session && (pathname === '/sign-in' || pathname === '/sign-up')) {
-        return NextResponse.redirect(new URL('/', request.url))
-    }
-
 
     if (!session) {
         return NextResponse.redirect(new URL('/', request.url))
