@@ -1,9 +1,12 @@
 import prisma from "@/lib/prisma";
 import { Prisma, UserLevel } from "@/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+import { finishExpiredContests } from "@/lib/contest/finish";
 
 export async function GET(request: NextRequest) {
   try {
+    await finishExpiredContests();
+
     const level = request.nextUrl.searchParams.get("level");
     const where: Prisma.ContestWhereInput = {};
 

@@ -23,23 +23,31 @@ export async function finishExpiredContests() {
     for (let i = 0; i < sorted.length; i++) {
       const p = sorted[i];
 
-      await prisma.contestParticipant.update({
-        where: {
-          contestId_userId: {
+      await prisma.$transaction(async (tx) => {
+        const ranked = await tx.contestParticipant.updateMany({
+          where: {
             contestId: contest.id,
             userId: p.userId,
+            rank: null,
           },
-        },
-        data: { rank: i + 1 },
-      });
+          data: { rank: i + 1 },
+        });
 
-      await prisma.user.update({
-        where: { id: p.userId },
-        data: {
-          score: {
-            increment: p.totalScore,
+        if (ranked.count === 0) {
+          return;
+        }
+
+        await tx.user.update({
+          where: { id: p.userId },
+          data: {
+            attended: {
+              increment: 1,
+            },
+            score: {
+              increment: p.totalScore,
+            },
           },
-        },
+        });
       });
     }
   }
