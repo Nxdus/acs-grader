@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import { Prisma, Role, UserLevel } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
-const sortableFields = new Set(["createdAt", "updatedAt", "name", "email", "level"]);
+const sortableFields = new Set([
+  "createdAt",
+  "updatedAt",
+  "name",
+  "email",
+  "role",
+  "level",
+  "emailVerified",
+]);
 
 function parseBoolean(value: string | null) {
   if (!value) return undefined;
