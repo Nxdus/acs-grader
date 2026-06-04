@@ -47,6 +47,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   FileText,
+  ListChecks,
   MoreHorizontal,
   Search,
 } from "lucide-react"
@@ -567,6 +568,12 @@ export default function ManageProblemsPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem asChild>
                                 <Link href={`/manage/problems/${problem.id}`}>Edit</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/manage/problems/${problem.id}/submissions`}>
+                                  <ListChecks className="size-4" />
+                                  Submissions
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
