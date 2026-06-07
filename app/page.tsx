@@ -1,13 +1,11 @@
 "use client";
 
-import ModelViewer from "@/components/model-viewer";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import Grainient from "@/components/reacit-bits/Grainient";
-import ShinyText from "@/components/reacit-bits/ShinyText";
+import Grainient from "@/components/react-bits/Grainient";
+import ShinyText from "@/components/react-bits/ShinyText";
 import { useSession } from "@/lib/auth-client";
-import ASCIIText from "@/components/reacit-bits/ASCIIText";
 
 export default function Page() {
   const { data: session } = useSession();

@@ -254,8 +254,9 @@ export async function POST(request: Request) {
     }
 
     if (Array.isArray((parsed as ImportedProblemFile).problems)) {
-      const normalizedProblems = []
-      for (const entry of (parsed as ImportedProblemFile).problems ?? []) {
+      const problemEntries = (parsed as { problems: unknown[] }).problems
+      const normalizedProblems: NormalizedProblem[] = []
+      for (const entry of problemEntries) {
         const result = buildProblemPayload(entry)
         if ("error" in result) {
           return NextResponse.json({ error: result.error }, { status: 400 })
