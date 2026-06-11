@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChartNoAxesColumn, Grip, Info, Trophy } from "lucide-react"
+import { ChartNoAxesColumn, Grip, Trophy } from "lucide-react"
 
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavUser, NavUserSkeleton } from "@/components/sidebar/nav-user"
@@ -41,12 +41,7 @@ const navbarMenu = {
       title: "Ranking",
       url: "/ranking",
       icon: ChartNoAxesColumn,
-    },
-    {
-      title: "About",
-      url: "/about",
-      icon: Info,
-    },
+    }
   ]
 }
 
