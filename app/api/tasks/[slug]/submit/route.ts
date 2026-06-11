@@ -329,7 +329,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   }[] = [];
 
   try {
-    for (const testCase of testCases) {
+    const judgedResults = await Promise.all(testCases.map(async (testCase) => {
       const useBase64 =
         shouldBase64Encode(code) ||
         shouldBase64Encode(testCase.input) ||
@@ -411,21 +411,29 @@ export async function POST(request: Request, { params }: RouteContext) {
         finalResult?.stderr ??
         null;
 
-      submissionResults.push({
+      return {
         testCaseId: testCase.id,
         actualOutput: decodeIfNeeded(rawOutput, responseBase64),
         passed: judgeStatus === "ACCEPTED",
         runtime: timeValue ?? null,
         judgeStatus,
         memory: memoryValue ?? null,
-      });
-    }
+      }
+    }))
+
+    submissionResults.push(...judgedResults)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Judge0 submit failed", {
       slug,
       message,
     });
+
+    await prisma.submission.update({
+      where: { id: submission.id },
+      data: { status: "INTERNAL_ERROR" },
+    });
+
     return NextResponse.json(
       { error: "Failed to submit to Judge0.", detail: message },
       { status: 502 },
