@@ -297,11 +297,72 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const { id } = await params
     const problemId = Number(id)
 
-    if (!Number.isFinite(problemId)) {
+    if (!Number.isInteger(problemId) || problemId <= 0) {
       return NextResponse.json({ error: "Invalid problem id" }, { status: 400 })
     }
 
-    await prisma.problem.delete({ where: { id: problemId } })
+    const problem = await prisma.problem.findUnique({
+      where: { id: problemId },
+      select: { id: true },
+    })
+
+    if (!problem) {
+      return NextResponse.json({ error: "Problem not found" }, { status: 404 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const affectedContestParticipants = await tx.submission.findMany({
+        where: {
+          problemId,
+          contestId: { not: null },
+        },
+        distinct: ["contestId", "userId"],
+        select: {
+          contestId: true,
+          userId: true,
+        },
+      })
+
+      await tx.submissionResult.deleteMany({
+        where: {
+          submission: { problemId },
+        },
+      })
+
+      await tx.submission.deleteMany({ where: { problemId } })
+      await tx.problem.delete({ where: { id: problemId } })
+
+      for (const participant of affectedContestParticipants) {
+        if (participant.contestId === null) continue
+
+        const bestByProblem = await tx.submission.groupBy({
+          by: ["problemId"],
+          where: {
+            contestId: participant.contestId,
+            userId: participant.userId,
+          },
+          _max: {
+            score: true,
+          },
+        })
+
+        const totalScore = bestByProblem.reduce(
+          (sum, entry) => sum + (entry._max.score ?? 0),
+          0,
+        )
+
+        await tx.contestParticipant.update({
+          where: {
+            contestId_userId: {
+              contestId: participant.contestId,
+              userId: participant.userId,
+            },
+          },
+          data: { totalScore },
+        })
+      }
+    })
+
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("Failed to delete problem:", error)
