@@ -1,7 +1,7 @@
-FROM oven/bun:1.3.14-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 FROM node:22-alpine AS builder
 WORKDIR /app
