@@ -22,4 +22,4 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 RUN mkdir -p /app/assets /app/auth
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db execute --file prisma/promote-admin.sql && node server.js"]
