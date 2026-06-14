@@ -6,7 +6,7 @@ import { sendEmail } from "@/lib/email";
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, { provider: "postgresql" }),
-    trustedOrigins: ["http://localhost:3000", "https://dash.nxdus.space"],
+    trustedOrigins: ["http://localhost:3000", "https://acs.nxdus.space"],
     baseURL: process.env.BETTER_AUTH_URL as string,
     secret: process.env.BETTER_AUTH_SECRET as string,
     plugins: [nextCookies()],
