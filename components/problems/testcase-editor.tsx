@@ -117,15 +117,17 @@ export default function TestcaseEditor({
       }
 
       const next: Record<string, RunStatus> = {}
-      for (const result of detail.results) {
-        const match = rows.find((row) => Number(row.id) === result.testCaseId)
-        if (!match) continue
+      detail.results.forEach((result, index) => {
+        const match =
+          rows.find((row) => Number(row.id) === result.testCaseId) ??
+          rows[index]
+        if (!match) return
         next[match.id] = {
           verdict: result.passed ? "success" : "fail",
           judgeStatus: result.judgeStatus,
           output: result.actualOutput ?? null,
         }
-      }
+      })
       setStatusById(next)
     }
 

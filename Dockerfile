@@ -9,7 +9,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN cp .env.example .env \
     && npx prisma generate \
-    && npm run build
+    && NEXT_STANDALONE=true npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app

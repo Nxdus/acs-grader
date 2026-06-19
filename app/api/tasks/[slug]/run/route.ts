@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 type RouteContext = {
     params: { slug: string } | Promise<{ slug: string }>;
@@ -8,6 +10,8 @@ type RouteContext = {
 type RunPayload = {
     languageId?: number;
     code?: string;
+    includeDraft?: boolean;
+    runAllTestCases?: boolean;
 };
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -152,6 +156,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const code = isNonEmptyString(payload.code) ? payload.code.trim() : "";
     const languageId = Number(payload.languageId);
+    const wantsManageRun = Boolean(payload.includeDraft || payload.runAllTestCases);
 
     if (!code) {
         return NextResponse.json({ error: "Code is required." }, { status: 400 });
@@ -174,7 +179,24 @@ export async function POST(request: Request, { params }: RouteContext) {
         },
     });
 
-    if (!problem || !problem.isPublished) {
+    if (!problem) {
+        return NextResponse.json({ error: "Task not found." }, { status: 404 });
+    }
+
+    let canManageDraftRun = false;
+    if (wantsManageRun) {
+        const session = await auth.api.getSession({
+            headers: await headers(),
+        });
+        const role = session?.user?.role;
+        canManageDraftRun = role === "STAFF" || role === "ADMIN";
+
+        if (!canManageDraftRun) {
+            return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+        }
+    }
+
+    if (!problem.isPublished && !canManageDraftRun) {
         return NextResponse.json({ error: "Task not found." }, { status: 404 });
     }
 
@@ -187,14 +209,22 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     const testCases = await prisma.testCase.findMany({
-        where: { problemId: problem.id, isSample: true },
+        where: {
+            problemId: problem.id,
+            ...(payload.runAllTestCases && canManageDraftRun ? {} : { isSample: true }),
+        },
         orderBy: { id: "asc" },
         select: { id: true, input: true, output: true },
     });
 
     if (testCases.length === 0) {
         return NextResponse.json(
-            { error: "No sample test cases found for this task." },
+            {
+                error:
+                    payload.runAllTestCases && canManageDraftRun
+                        ? "No test cases found for this task."
+                        : "No sample test cases found for this task.",
+            },
             { status: 400 },
         );
     }
@@ -210,15 +240,20 @@ export async function POST(request: Request, { params }: RouteContext) {
         );
     }
 
-    const results: Array<{
+    type RunResult = {
         testCaseId: number;
         actualOutput: string | null;
         passed: boolean;
         judgeStatus: ReturnType<typeof mapJudge0Status>;
-    }> = [];
+    };
 
     try {
-        for (const testCase of testCases) {
+        const headers = {
+            "Content-Type": "application/json",
+            "X-Judge0-Token": "paitongacs23kodlor",
+        };
+
+        const runTestCase = async (testCase: (typeof testCases)[number]): Promise<RunResult> => {
             const useBase64 =
                 shouldBase64Encode(code) ||
                 shouldBase64Encode(testCase.input) ||
@@ -227,11 +262,6 @@ export async function POST(request: Request, { params }: RouteContext) {
             const url = new URL("/submissions/", judgeBaseUrl);
             url.searchParams.set("base64_encoded", useBase64 ? "true" : "false");
             url.searchParams.set("wait", "false");
-
-            const headers = {
-                "Content-Type": "application/json",
-                "X-Judge0-Token": "paitongacs23kodlor",
-            };
 
             const response = await fetch(url.toString(), {
                 method: "POST",
@@ -266,7 +296,7 @@ export async function POST(request: Request, { params }: RouteContext) {
                     : null;
             const finalResult = polled?.result ?? result;
             const responseBase64 = polled?.responseBase64 ?? useBase64;
-            
+
             console.info("Judge0 run response", {
                 slug,
                 testCaseId: testCase.id,
@@ -282,13 +312,17 @@ export async function POST(request: Request, { params }: RouteContext) {
                 finalResult?.stderr ??
                 null;
 
-            results.push({
+            return {
                 testCaseId: testCase.id,
                 actualOutput: decodeIfNeeded(rawOutput, responseBase64),
                 passed: judgeStatus === "ACCEPTED",
                 judgeStatus,
-            });
-        }
+            };
+        };
+
+        const results = await Promise.all(testCases.map(runTestCase));
+
+        return NextResponse.json({ results });
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Unknown error";
@@ -301,6 +335,4 @@ export async function POST(request: Request, { params }: RouteContext) {
             { status: 502 },
         );
     }
-
-    return NextResponse.json({ results });
 }

@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { finishExpiredContests } from "@/lib/contest/finish";
+import { getProblemStats } from "@/lib/problem-stats";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -67,13 +68,31 @@ export async function GET(
       return NextResponse.json({ error: "Contest not found" }, { status: 404 });
     }
 
+    const problemStats = await getProblemStats(
+      contest.problems.map((contestProblem) => contestProblem.problemId),
+    );
+
+    const contestWithStats = {
+      ...contest,
+      problems: contest.problems.map((contestProblem) => ({
+        ...contestProblem,
+        problem: {
+          ...contestProblem.problem,
+          ...(problemStats.get(contestProblem.problemId) ?? {
+            participantCount: contestProblem.problem.participantCount,
+            successCount: contestProblem.problem.successCount,
+          }),
+        },
+      })),
+    };
+
     if (!userId) {
-      return NextResponse.json(contest);
+      return NextResponse.json(contestWithStats);
     }
 
     const contestWithProgress = {
-      ...contest,
-      problems: contest.problems.map((contestProblem) => {
+      ...contestWithStats,
+      problems: contestWithStats.problems.map((contestProblem) => {
         const submissions = contestProblem.problem.submissions ?? [];
         return {
           ...contestProblem,

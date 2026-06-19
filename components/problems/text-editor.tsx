@@ -40,6 +40,8 @@ type TextEditorProps = {
     initialCode?: string;
     contestSlug?: string;
     allowSubmit?: boolean;
+    allowDraftRun?: boolean;
+    runAllTestCases?: boolean;
 };
 
 const AUTOSAVE_DELAY = 1500; // ms
@@ -112,6 +114,8 @@ export default function TextEditor({
     initialCode = "",
     contestSlug,
     allowSubmit = true,
+    allowDraftRun = false,
+    runAllTestCases = false,
 }: TextEditorProps) {
 
     const [languages, setLanguages] = useState<Array<{ id: number; name: string; monacoId: string }>>([]);
@@ -461,6 +465,8 @@ export default function TextEditor({
                 body: JSON.stringify({
                     languageId: Number(languageId),
                     code,
+                    includeDraft: allowDraftRun,
+                    runAllTestCases,
                 }),
             });
 

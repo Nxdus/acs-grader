@@ -9,7 +9,7 @@ import {
     ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { formatMemoryLimitFromMb } from "@/lib/format-memory"
-import { headers } from "next/headers"
+import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
 
 type TaskResponse = {
@@ -59,23 +59,47 @@ const buildTaskMarkdown = (task: TaskResponse, fallbackTitle: string) => {
 }
 
 const getTask = async (slug: string): Promise<TaskResponse | null> => {
-    const headerList = await headers()
-    const host = headerList.get("host")
-    const protocol = headerList.get("x-forwarded-proto") ?? "http"
+    const safeSlug = slug.trim()
 
-    if (!host) {
+    if (!safeSlug) {
         return null
     }
 
-    const response = await fetch(`${protocol}://${host}/api/tasks/${slug}`, {
-        cache: "no-store",
+    const problem = await prisma.problem.findFirst({
+        where: {
+            OR: [
+                isNaN(Number(safeSlug)) ? { slug: safeSlug } : { id: Number(safeSlug) },
+            ],
+            isPublished: true,
+        },
+        include: {
+            testCases: {
+                where: { isSample: true },
+                orderBy: { id: "asc" },
+                select: {
+                    id: true,
+                    input: true,
+                    output: true,
+                },
+            },
+        },
     })
 
-    if (!response.ok) {
+    if (!problem) {
         return null
     }
 
-    return response.json()
+    return {
+        slug: problem.slug,
+        title: problem.title,
+        description: problem.description,
+        memoryLimit: problem.memoryLimit,
+        constraints: problem.constraints,
+        inputFormat: problem.inputFormat,
+        outputFormat: problem.outputFormat,
+        allowedLanguageIds: problem.allowedLanguageIds ?? [],
+        testCases: problem.testCases,
+    }
 }
 
 export default async function Page({

@@ -42,11 +42,6 @@ const navbarMenu = {
       url: "/ranking",
       icon: ChartNoAxesColumn,
     },
-    {
-      title: "About",
-      url: "/about",
-      icon: Info,
-    },
   ]
 }
 
@@ -64,9 +59,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-primary-foreground!"
             >
-              <Image draggable={false} src={"/images/acs.svg"} alt="@ACS" width={128} height={128} className="w-16 dark:invert" />
+              <Image draggable={false} src={"/images/logoacs.png"} alt="@ACS" width={128} height={128} className="w-22" />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">ACS GRADER</span>
                 <span className="truncate text-xs text-muted-foreground">FIRSTMEET</span>
