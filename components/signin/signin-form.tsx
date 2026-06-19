@@ -149,7 +149,7 @@ export function SigninForm({
             <div className="min-w-sm max-w-md">
                 <FieldGroup>
                     <div className="flex flex-col items-center gap-2 text-center">
-                        <Image draggable={false} src={"/images/acs.svg"} alt="@ACS" width={128} height={128} className="w-32 dark:invert" />
+                        <Image draggable={false} src={"/images/logoacs.png"} alt="@ACS" width={512} height={512} className="w-64" />
                         <h1 className="text-xl font-bold text-primary">
                             Welcome back
                         </h1>

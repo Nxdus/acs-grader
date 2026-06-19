@@ -9,7 +9,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { formatMemoryLimitFromMb } from "@/lib/format-memory"
-import { headers } from "next/headers"
+import prisma from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Contest } from "@/generated/prisma/client"
 
@@ -69,43 +69,61 @@ const buildTaskMarkdown = (task: ProblemResponse, fallbackTitle: string) => {
 }
 
 const getContest = async (slug: string): Promise<Contest | null> => {
-  const headerList = await headers()
-  const host = headerList.get("host")
-  const protocol = headerList.get("x-forwarded-proto") ?? "http"
-
-  if (!host) {
-    return null
-  }
-
-  const response = await fetch(`${protocol}://${host}/api/contest/${slug}`, {
-    cache: "no-store",
+  return prisma.contest.findUnique({
+    where: { slug },
   })
-
-  if (!response.ok) {
-    return null
-  }
-
-  return response.json()
 }
 
 const getTask = async (slug: string, problem: string): Promise<TaskResponse | null> => {
-  const headerList = await headers()
-  const host = headerList.get("host")
-  const protocol = headerList.get("x-forwarded-proto") ?? "http"
-
-  if (!host) {
-    return null
-  }
-
-  const response = await fetch(`${protocol}://${host}/api/contest/${slug}/problems/${problem}`, {
-    cache: "no-store",
+  const contestProblem = await prisma.contestProblem.findFirst({
+    where: {
+      contest: {
+        slug,
+      },
+      problem: {
+        slug: problem,
+        isPublished: true,
+      },
+    },
+    orderBy: { order: "asc" },
+    include: {
+      problem: {
+        include: {
+          testCases: {
+            where: { isSample: true },
+            orderBy: { id: "asc" },
+            select: {
+              id: true,
+              input: true,
+              output: true,
+            },
+          },
+        },
+      },
+    },
   })
 
-  if (!response.ok) {
+  if (!contestProblem) {
     return null
   }
 
-  return response.json()
+  return {
+    contestId: contestProblem.contestId,
+    problemId: contestProblem.problemId,
+    order: contestProblem.order,
+    maxScore: contestProblem.maxScore ?? 0,
+    problem: {
+      slug: contestProblem.problem.slug,
+      title: contestProblem.problem.title,
+      description: contestProblem.problem.description,
+      memoryLimit: contestProblem.problem.memoryLimit,
+      constraints: contestProblem.problem.constraints,
+      inputFormat: contestProblem.problem.inputFormat,
+      outputFormat: contestProblem.problem.outputFormat,
+      allowedLanguageIds: contestProblem.problem.allowedLanguageIds ?? [],
+      testCases: contestProblem.problem.testCases,
+    },
+  }
 }
 
 const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {

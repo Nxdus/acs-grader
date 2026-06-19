@@ -599,6 +599,7 @@ export default function ManageProblemEditorPage() {
         router.replace(`/manage/problems/${saved.id}`)
         return
       }
+      void loadProblem(saved.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save problem.")
     } finally {
@@ -906,6 +907,8 @@ export default function ManageProblemEditorPage() {
                   allowedLanguageIds={parseAllowedLanguageIds(state.allowedLanguageIds)}
                   memoryLimit={Number(state.memoryLimit) || null}
                   allowSubmit={false}
+                  allowDraftRun
+                  runAllTestCases
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

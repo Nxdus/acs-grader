@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { computeScore } from "@/lib/scoring";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 type RouteContext = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -174,7 +176,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const userId = isNonEmptyString(payload.userId) ? payload.userId.trim() : "";
+  const requestedUserId = isNonEmptyString(payload.userId) ? payload.userId.trim() : "";
   const language = isNonEmptyString(payload.language)
     ? payload.language.trim()
     : "";
@@ -184,9 +186,23 @@ export async function POST(request: Request, { params }: RouteContext) {
     : "";
   const languageId = Number(payload.languageId);
 
-  if (!userId || !language || !code) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (requestedUserId && requestedUserId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const userId = session.user.id;
+
+  if (!language || !code) {
     return NextResponse.json(
-      { error: "userId, language, and code are required." },
+      { error: "language and code are required." },
       { status: 400 },
     );
   }

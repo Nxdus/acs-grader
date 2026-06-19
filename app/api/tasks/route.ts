@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, UserLevel } from "@/generated/prisma/client";
+import { getProblemStats } from "@/lib/problem-stats";
 import prisma from "@/lib/prisma";
 
 const DEFAULT_TAKE = 50;
@@ -116,15 +117,18 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    const problemStats = await getProblemStats(problems.map((problem) => problem.id));
 
     const items = problems.map((problem) => ({
+      ...(problemStats.get(problem.id) ?? {
+        participantCount: problem.participantCount,
+        successCount: problem.successCount,
+      }),
       id: problem.id,
       slug: problem.slug,
       title: problem.title,
       difficulty: problem.difficulty,
       level: problem.level,
-      participantCount: problem.participantCount,
-      successCount: problem.successCount,
       hasSubmission: problem.submissions.length > 0,
       submissionStatus: problem.submissions[0]?.status ?? null,
       tags: problem.tags.map((entry) => entry.tag.name),
@@ -151,15 +155,18 @@ export async function GET(request: NextRequest) {
     skip,
     include: baseInclude,
   });
+  const problemStats = await getProblemStats(problems.map((problem) => problem.id));
 
   const items = problems.map((problem) => ({
+    ...(problemStats.get(problem.id) ?? {
+      participantCount: problem.participantCount,
+      successCount: problem.successCount,
+    }),
     id: problem.id,
     slug: problem.slug,
     title: problem.title,
     difficulty: problem.difficulty,
     level: problem.level,
-    participantCount: problem.participantCount,
-    successCount: problem.successCount,
     tags: problem.tags.map((entry) => entry.tag.name),
     contestProblems: problem.contestProblems.map((cp) => ({
       contestId: cp.contestId,

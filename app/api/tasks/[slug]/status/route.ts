@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 type RouteContext = {
     params: { slug: string } | Promise<{ slug: string }>;
@@ -24,10 +26,21 @@ export async function GET(request: Request, { params }: RouteContext) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId")?.trim();
 
-    if (!userId) {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
         return NextResponse.json(
-            { error: "userId is required." },
-            { status: 400 },
+            { error: "Unauthorized" },
+            { status: 401 },
+        );
+    }
+
+    if (userId && userId !== session.user.id) {
+        return NextResponse.json(
+            { error: "Forbidden" },
+            { status: 403 },
         );
     }
 
@@ -45,7 +58,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
     const submission = await prisma.submission.findFirst({
         where: {
-            userId,
+            userId: session.user.id,
             problemId: problem.id,
         },
         orderBy: { createdAt: "desc" },
