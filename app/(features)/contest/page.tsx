@@ -4,7 +4,7 @@ import { SectionNavBar } from "@/components/sidebar/section-navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Clock, Eye, LogIn, Users } from "lucide-react";
+import { Calendar, Clock, Eye, FileText, LogIn, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Contest } from "@/generated/prisma/client";
 import { ContestParticipant } from "@/generated/prisma/client";
@@ -76,6 +76,8 @@ export default function Page() {
 
   const { data: session } = useSession()
   const userLevel = session?.user?.level ?? "BEGINNER"
+  const canManageContests =
+    session?.user?.role === Role.ADMIN || session?.user?.role === Role.STAFF
 
   useEffect(() => {
     const fetchContests = async () => {
@@ -146,12 +148,22 @@ export default function Page() {
       <SectionNavBar items={[{ label: "Contest" }]} />
 
       <div className="container my-7 mx-auto px-4">
-        <div>
-          <h1 className="text-xl font-bold">Contests</h1>
-          <p className="text-sm text-muted-foreground">
-            Join programming contests, compete with other developers, and
-            improve your skills.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Contests</h1>
+            <p className="text-sm text-muted-foreground">
+              Join programming contests, compete with other developers, and
+              improve your skills.
+            </p>
+          </div>
+          {canManageContests ? (
+            <Button asChild className="gap-2 sm:self-start">
+              <Link href="/manage/contests/new">
+                <FileText className="size-4" />
+                Create Contest
+              </Link>
+            </Button>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 mb-8">
@@ -261,9 +273,14 @@ export default function Page() {
             <p className="text-muted-foreground">
               No contests available at the moment
             </p>
-            {(session?.user?.role === Role.ADMIN || session?.user?.role === Role.STAFF) &&
-              <Button className="mt-4" variant="outline">Create Contest</Button>
-            }
+            {canManageContests ? (
+              <Button asChild className="mt-4 gap-2" variant="outline">
+                <Link href="/manage/contests/new">
+                  <FileText className="size-4" />
+                  Create Contest
+                </Link>
+              </Button>
+            ) : null}
           </Card>
         )}
       </div>
