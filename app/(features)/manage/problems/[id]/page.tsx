@@ -876,9 +876,6 @@ export default function ManageProblemEditorPage() {
                             ))}
                           </>
                         )}
-                        {!tagLoading && !tagError ? (
-                          <ComboboxEmpty>No tags found.</ComboboxEmpty>
-                        ) : null}
                       </ComboboxList>
                     </ComboboxContent>
                   </Combobox>
