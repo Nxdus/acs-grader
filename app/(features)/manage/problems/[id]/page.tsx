@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 
@@ -10,6 +10,18 @@ import TextEditor from "@/components/problems/text-editor"
 import { SectionNavBar } from "@/components/sidebar/section-navbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  useComboboxAnchor,
+} from "@/components/ui/combobox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -175,6 +187,7 @@ export default function ManageProblemEditorPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const tagComboboxAnchorRef = useComboboxAnchor()
 
   const [state, setState] = useState<FormState>(createEmptyState())
   const [isLoading, setIsLoading] = useState(false)
@@ -189,6 +202,7 @@ export default function ManageProblemEditorPage() {
   const [tagOptions, setTagOptions] = useState<TagOption[]>([])
   const [tagLoading, setTagLoading] = useState(false)
   const [tagError, setTagError] = useState<string | null>(null)
+  const [customTag, setCustomTag] = useState("")
   const [contestOptions, setContestOptions] = useState<ContestOption[]>([])
   const [contestLoading, setContestLoading] = useState(false)
   const [contestError, setContestError] = useState<string | null>(null)
@@ -220,6 +234,29 @@ export default function ManageProblemEditorPage() {
     return selectedLanguageIds.map((id) => map.get(id)).filter(Boolean) as string[]
   }, [languageOptions, selectedLanguageIds])
   const selectedTags = useMemo(() => parseCsv(state.tags), [state.tags])
+  const normalizedCustomTag = customTag.trim()
+  const canAddCustomTag =
+    normalizedCustomTag.length > 0 && !selectedTags.includes(normalizedCustomTag)
+  const hasMatchingTagOption = tagOptions.some(
+    (tag) => tag.name.toLowerCase() === normalizedCustomTag.toLowerCase()
+  )
+
+  const loadTags = useCallback(async () => {
+    setTagLoading(true)
+    setTagError(null)
+    try {
+      const response = await fetch("/api/tags")
+      if (!response.ok) {
+        throw new Error(`Failed to load tags: ${response.status}`)
+      }
+      const data = (await response.json()) as TagOption[]
+      setTagOptions(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setTagError(err instanceof Error ? err.message : "Failed to load tags.")
+    } finally {
+      setTagLoading(false)
+    }
+  }, [])
 
   const loadProblem = useCallback(async (id: number) => {
     setIsLoading(true)
@@ -295,33 +332,8 @@ export default function ManageProblemEditorPage() {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    async function loadTags() {
-      setTagLoading(true)
-      setTagError(null)
-      try {
-        const response = await fetch("/api/tags")
-        if (!response.ok) {
-          throw new Error(`Failed to load tags: ${response.status}`)
-        }
-        const data = (await response.json()) as TagOption[]
-        if (cancelled) return
-        setTagOptions(Array.isArray(data) ? data : [])
-      } catch (err) {
-        if (!cancelled) {
-          setTagError(err instanceof Error ? err.message : "Failed to load tags.")
-        }
-      } finally {
-        if (!cancelled) {
-          setTagLoading(false)
-        }
-      }
-    }
-    loadTags()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    void loadTags()
+  }, [loadTags])
 
   useEffect(() => {
     let cancelled = false
@@ -448,12 +460,18 @@ export default function ManageProblemEditorPage() {
     updateState({ tags: unique.join(", ") })
   }
 
-  function toggleTag(name: string) {
-    if (selectedTags.includes(name)) {
-      updateTags(selectedTags.filter((item) => item !== name))
-    } else {
-      updateTags([...selectedTags, name])
-    }
+  function addCustomTags() {
+    const nextTags = parseCsv(customTag)
+    if (nextTags.length === 0) return
+    updateTags([...selectedTags, ...nextTags])
+    setCustomTag("")
+    setTagError(null)
+  }
+
+  function handleCustomTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" || !canAddCustomTag) return
+    event.preventDefault()
+    addCustomTags()
   }
 
   async function handleGenerateTestcases(count: number) {
@@ -595,6 +613,7 @@ export default function ManageProblemEditorPage() {
       }
 
       const saved = (await response.json()) as { id: number }
+      await loadTags()
       if (!state.id) {
         router.replace(`/manage/problems/${saved.id}`)
         return
@@ -814,37 +833,55 @@ export default function ManageProblemEditorPage() {
                 </div>
                 <div className="grid min-w-0 gap-2 bg-background/60 py-3">
                   <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tags</label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full min-w-0 justify-between">
-                        <span className="truncate">
-                          {selectedTags.length > 0 ? selectedTags.join(", ") : "Select tags"}
-                        </span>
-                        <ChevronDown className="size-4 opacity-60" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="max-h-72 w-(--radix-dropdown-menu-trigger-width) max-w-(--radix-dropdown-menu-trigger-width) overflow-auto">
-                      {tagLoading ? (
-                        <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
-                      ) : tagError ? (
-                        <div className="px-3 py-2 text-xs text-destructive">{tagError}</div>
-                      ) : tagOptions.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-muted-foreground">
-                          No tags found.
-                        </div>
-                      ) : (
-                        tagOptions.map((tag) => (
-                          <DropdownMenuCheckboxItem
-                            key={tag.id}
-                            checked={selectedTags.includes(tag.name)}
-                            onCheckedChange={() => toggleTag(tag.name)}
-                          >
-                            {tag.name}
-                          </DropdownMenuCheckboxItem>
-                        ))
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Combobox
+                    multiple
+                    value={selectedTags}
+                    inputValue={customTag}
+                    onInputValueChange={setCustomTag}
+                    onValueChange={(value) => {
+                      updateTags(value)
+                      setCustomTag("")
+                      setTagError(null)
+                    }}
+                  >
+                    <ComboboxChips ref={tagComboboxAnchorRef} className="min-w-0">
+                      {selectedTags.map((tag) => (
+                        <ComboboxChip key={tag} className="max-w-full">
+                          <span className="truncate">{tag}</span>
+                        </ComboboxChip>
+                      ))}
+                      <ComboboxChipsInput
+                        placeholder={selectedTags.length > 0 ? "" : "Select or add tags"}
+                        onKeyDown={handleCustomTagKeyDown}
+                      />
+                      <ComboboxTrigger className="ml-auto inline-flex size-5 items-center justify-center text-muted-foreground" />
+                    </ComboboxChips>
+                    <ComboboxContent anchor={tagComboboxAnchorRef}>
+                      <ComboboxList>
+                        {tagLoading ? (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
+                        ) : tagError ? (
+                          <div className="px-3 py-2 text-xs text-destructive">{tagError}</div>
+                        ) : (
+                          <>
+                            {canAddCustomTag && !hasMatchingTagOption ? (
+                              <ComboboxItem value={normalizedCustomTag}>
+                                Add &quot;{normalizedCustomTag}&quot;
+                              </ComboboxItem>
+                            ) : null}
+                            {tagOptions.map((tag) => (
+                              <ComboboxItem key={tag.id} value={tag.name}>
+                                {tag.name}
+                              </ComboboxItem>
+                            ))}
+                          </>
+                        )}
+                        {!tagLoading && !tagError ? (
+                          <ComboboxEmpty>No tags found.</ComboboxEmpty>
+                        ) : null}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 </div>
               </div>
             </div>
