@@ -144,3 +144,101 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Failed to fetch submissions." }, { status: 500 })
   }
 }
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  try {
+    const { id } = await params
+    const problemId = Number(id)
+
+    if (!Number.isInteger(problemId) || problemId <= 0) {
+      return NextResponse.json({ error: "Invalid problem id." }, { status: 400 })
+    }
+
+    const problem = await prisma.problem.findUnique({
+      where: { id: problemId },
+      select: { id: true },
+    })
+
+    if (!problem) {
+      return NextResponse.json({ error: "Problem not found." }, { status: 404 })
+    }
+
+    const deletedCount = await prisma.$transaction(async (tx) => {
+      const affectedContestParticipants = await tx.submission.findMany({
+        where: {
+          problemId,
+          contestId: { not: null },
+        },
+        distinct: ["contestId", "userId"],
+        select: {
+          contestId: true,
+          userId: true,
+        },
+      })
+
+      await tx.submissionResult.deleteMany({
+        where: {
+          submission: { problemId },
+        },
+      })
+
+      const deleted = await tx.submission.deleteMany({ where: { problemId } })
+
+      await tx.problem.update({
+        where: { id: problemId },
+        data: {
+          participantCount: 0,
+          successCount: 0,
+        },
+      })
+
+      for (const participant of affectedContestParticipants) {
+        if (participant.contestId === null) continue
+
+        const [bestByProblem, lastSubmission] = await Promise.all([
+          tx.submission.groupBy({
+            by: ["problemId"],
+            where: {
+              contestId: participant.contestId,
+              userId: participant.userId,
+            },
+            _max: {
+              score: true,
+            },
+          }),
+          tx.submission.findFirst({
+            where: {
+              contestId: participant.contestId,
+              userId: participant.userId,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          }),
+        ])
+
+        const totalScore = bestByProblem.reduce(
+          (sum, entry) => sum + (entry._max.score ?? 0),
+          0,
+        )
+
+        await tx.contestParticipant.updateMany({
+          where: {
+            contestId: participant.contestId,
+            userId: participant.userId,
+          },
+          data: {
+            totalScore,
+            lastSubmitAt: lastSubmission?.createdAt ?? null,
+          },
+        })
+      }
+
+      return deleted.count
+    })
+
+    return NextResponse.json({ ok: true, deletedCount })
+  } catch (error) {
+    console.error("Failed to clear problem submissions:", error)
+    return NextResponse.json({ error: "Failed to clear submissions." }, { status: 500 })
+  }
+}
