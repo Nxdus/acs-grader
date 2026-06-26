@@ -10,6 +10,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,7 +36,7 @@ import {
 } from "@/components/ui/table"
 import { Spinner } from "@/components/ui/spinner"
 import { formatMemoryFromKb } from "@/lib/format-memory"
-import { ArrowDown, ArrowUp, ArrowUpDown, Code2, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, Code2, Eraser, Search, Trash2 } from "lucide-react"
 
 const statusOptions = [
   "ACCEPTED",
@@ -133,6 +143,11 @@ export default function ManageProblemSubmissionsPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [page, setPage] = useState(1)
   const pageSize = 20
+  const [pendingDelete, setPendingDelete] = useState<SubmissionRecord | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [clearOpen, setClearOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -228,6 +243,55 @@ export default function ManageProblemSubmissionsPage() {
     setSortDirection("asc")
   }
 
+  async function handleDeleteSubmission() {
+    if (!pendingDelete) return
+
+    setIsDeleting(true)
+    setError(null)
+    try {
+      const response = await fetch(
+        `/api/manage/problems/${problemId}/submissions/${pendingDelete.id}`,
+        { method: "DELETE" },
+      )
+
+      if (!response.ok) {
+        const message = await response.json().catch(() => null)
+        throw new Error(message?.error ?? "Failed to delete submission.")
+      }
+
+      setPendingDelete(null)
+      setDeleteOpen(false)
+      await fetchSubmissions(page)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete submission.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  async function handleClearSubmissions() {
+    setIsClearing(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/manage/problems/${problemId}/submissions`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const message = await response.json().catch(() => null)
+        throw new Error(message?.error ?? "Failed to clear submissions.")
+      }
+
+      setClearOpen(false)
+      setPage(1)
+      await fetchSubmissions(1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to clear submissions.")
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   return (
     <main className="w-full h-full flex flex-col rounded-xl bg-background">
       <SectionNavBar
@@ -256,6 +320,14 @@ export default function ManageProblemSubmissionsPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button variant="outline" onClick={handleResetFilters}>
               Reset filters
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setClearOpen(true)}
+              disabled={isLoading || statsDisplay.attempted === 0 || isClearing}
+            >
+              <Eraser className="size-4" />
+              Clear all
             </Button>
             <Button variant="outline" asChild>
               <Link href={`/manage/problems/${problemId}`}>Edit problem</Link>
@@ -370,7 +442,7 @@ export default function ManageProblemSubmissionsPage() {
                         <SortIcon active={sortKey === "createdAt"} direction={sortDirection} />
                       </button>
                     </TableHead>
-                    <TableHead className="text-right">Code</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -430,11 +502,24 @@ export default function ManageProblemSubmissionsPage() {
                           {formatTime(submission.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/manage/problems/${problemId}/submissions/${submission.id}`}>
-                              <Code2 className="size-4" />
-                            </Link>
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link href={`/manage/problems/${problemId}/submissions/${submission.id}`}>
+                                <Code2 className="size-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setPendingDelete(submission)
+                                setDeleteOpen(true)
+                              }}
+                              aria-label={`Delete submission ${submission.id}`}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -478,6 +563,50 @@ export default function ManageProblemSubmissionsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `Delete submission #${pendingDelete.id}? This will also remove its testcase results.`
+                : "This will also remove its testcase results."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteSubmission}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete submission"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all submissions</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete all submissions for this problem? This will also remove their testcase results and reset problem submission stats.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setClearOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleClearSubmissions}
+              disabled={isClearing}
+            >
+              {isClearing ? "Clearing..." : "Clear all"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }
