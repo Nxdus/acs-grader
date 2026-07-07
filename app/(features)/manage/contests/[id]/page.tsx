@@ -250,6 +250,18 @@ export default function ManageContestEditorPage() {
     setState((prev) => ({ ...prev, ...patch }))
   }
 
+  function handleLevelChange(value: string) {
+    const nextLevel = value as UserLevel
+    if (nextLevel === state.level) return
+
+    console.info("[manage-contests] Contest level changed", {
+      contestId,
+      previousLevel: state.level,
+      nextLevel,
+    })
+    updateState({ level: nextLevel })
+  }
+
   function handleTitleChange(value: string) {
     setState((prev) => {
       const nextSlug = slugTouched ? prev.slug : slugify(value)
@@ -510,7 +522,7 @@ export default function ManageContestEditorPage() {
                 </label>
                 <Select
                   value={state.level}
-                  onValueChange={(value) => updateState({ level: value as UserLevel })}
+                  onValueChange={handleLevelChange}
                 >
                   <SelectTrigger id="contest-level" className="w-full">
                     <SelectValue placeholder="Select level" />
