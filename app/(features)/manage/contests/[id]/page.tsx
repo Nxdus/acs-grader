@@ -239,8 +239,12 @@ export default function ManageContestEditorPage() {
     }
     void loadContest(contestId)
     void loadContestProblems(contestId)
+  }, [contestId, loadContest, loadContestProblems])
+
+  useEffect(() => {
+    if (!contestId) return
     void loadAvailableProblems()
-  }, [contestId, loadAvailableProblems, loadContest, loadContestProblems])
+  }, [contestId, loadAvailableProblems])
 
   function updateState(patch: Partial<FormState>) {
     setState((prev) => ({ ...prev, ...patch }))
