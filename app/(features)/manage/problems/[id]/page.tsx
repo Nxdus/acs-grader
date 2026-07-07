@@ -16,7 +16,6 @@ import {
   ComboboxChips,
   ComboboxChipsInput,
   ComboboxContent,
-  ComboboxEmpty,
   ComboboxItem,
   ComboboxList,
   ComboboxTrigger,
@@ -195,7 +194,6 @@ export default function ManageProblemEditorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [slugTouched, setSlugTouched] = useState(false)
   const [languageOptions, setLanguageOptions] = useState<JudgeLanguage[]>([])
   const [languageLoading, setLanguageLoading] = useState(false)
   const [languageError, setLanguageError] = useState<string | null>(null)
@@ -267,7 +265,6 @@ export default function ManageProblemEditorPage() {
         throw new Error("Failed to load problem details.")
       }
       const detail = (await response.json()) as ProblemDetail
-      setSlugTouched(true)
       setState({
         id: detail.id,
         title: detail.title ?? "",
@@ -374,7 +371,6 @@ export default function ManageProblemEditorPage() {
     const rawId = params?.id
     if (!rawId || rawId === "new") {
       setState(createEmptyState())
-      setSlugTouched(false)
       return
     }
     const id = Number(rawId)
@@ -436,10 +432,11 @@ export default function ManageProblemEditorPage() {
   }
 
   function handleTitleChange(value: string) {
-    setState((prev) => {
-      const nextSlug = slugTouched ? prev.slug : slugify(value)
-      return { ...prev, title: value, slug: nextSlug }
-    })
+    updateState({ title: value })
+  }
+
+  function handleSlugChange(value: string) {
+    updateState({ slug: slugify(value) })
   }
 
   function updateAllowedLanguageIds(next: number[]) {
@@ -898,9 +895,11 @@ export default function ManageProblemEditorPage() {
               ) : (
                 <TaskMarkdownEditor
                   title={state.title}
+                  slug={state.slug}
                   value={state.description}
                   onChangeAction={(value) => updateState({ description: value })}
                   onTitleChange={(value) => handleTitleChange(value)}
+                  onSlugChange={(value) => handleSlugChange(value)}
                   constraints={state.constraints}
                   onConstraintsChange={(value) => updateState({ constraints: value })}
                   inputFormat={state.inputFormat}

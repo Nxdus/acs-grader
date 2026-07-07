@@ -22,9 +22,11 @@ import {
 
 type TaskMarkdownEditorProps = {
   title: string
+  slug: string
   value: string
   onChangeAction: (value: string) => void
   onTitleChange: (value: string) => void
+  onSlugChange: (value: string) => void
   constraints: string
   onConstraintsChange: (value: string) => void
   inputFormat: string
@@ -44,9 +46,11 @@ type InsertOptions = {
 
 export default function TaskMarkdownEditor({
   title,
+  slug,
   value,
   onChangeAction,
   onTitleChange,
+  onSlugChange,
   constraints,
   onConstraintsChange,
   inputFormat,
@@ -122,16 +126,31 @@ export default function TaskMarkdownEditor({
         </div>
         <TabsContent value="edit" className="flex-1 overflow-auto p-0">
           <div className="flex min-h-full flex-col gap-3 p-3">
-            <div className="grid gap-2">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="md-title">
-                Title
-              </label>
-              <Input
-                id="md-title"
-                value={title}
-                onChange={(event) => onTitleChange(event.target.value)}
-                placeholder="Problem title"
-              />
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="md-title">
+                  Title
+                </label>
+                <Input
+                  id="md-title"
+                  value={title}
+                  onChange={(event) => onTitleChange(event.target.value)}
+                  placeholder="Problem title"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="md-slug">
+                  Slug
+                </label>
+                <Input
+                  id="md-slug"
+                  value={slug}
+                  onChange={(event) => onSlugChange(event.target.value)}
+                  placeholder="problem-slug"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
