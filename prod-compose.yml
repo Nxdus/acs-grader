@@ -6,7 +6,7 @@ x-logging: &default-logging
 
 services:
   acs-grader:
-    image: ghcr.io/nxdus/acs-grader:0.1-c
+    image: ghcr.io/nxdus/acs-grader:latest
     env_file: .env
     # ports:
     #   - "3000:3000"
