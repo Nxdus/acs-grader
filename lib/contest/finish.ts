@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
 
+const getLastSubmitTime = (date: Date | null) =>
+  date ? date.getTime() : Number.POSITIVE_INFINITY;
+
 export async function finishExpiredContests() {
   const contests = await prisma.contest.findMany({
     where: {
@@ -17,7 +20,10 @@ export async function finishExpiredContests() {
 
   for (const contest of contests) {
     const sorted = contest.participants.sort(
-      (a, b) => b.totalScore - a.totalScore || a.penalty - b.penalty,
+      (a, b) =>
+        b.totalScore - a.totalScore ||
+        getLastSubmitTime(a.lastSubmitAt) - getLastSubmitTime(b.lastSubmitAt) ||
+        a.penalty - b.penalty,
     );
 
     for (let i = 0; i < sorted.length; i++) {

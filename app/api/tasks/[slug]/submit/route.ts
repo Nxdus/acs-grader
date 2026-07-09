@@ -550,12 +550,12 @@ export async function POST(request: Request, { params }: RouteContext) {
           },
         },
         update: {
-          lastSubmitAt: new Date(),
+          lastSubmitAt: submission.createdAt,
         },
         create: {
           contestId: submissionContext.contestId,
           userId,
-          lastSubmitAt: new Date(),
+          lastSubmitAt: submission.createdAt,
         },
       });
     }

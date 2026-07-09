@@ -17,7 +17,11 @@ export async function GET(
           slug: slug,
         },
       },
-      orderBy: [{ totalScore: "desc" }, { penalty: "asc" }],
+      orderBy: [
+        { totalScore: "desc" },
+        { lastSubmitAt: { sort: "asc", nulls: "last" } },
+        { penalty: "asc" },
+      ],
       include: {
         user: {
           select: {
