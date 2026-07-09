@@ -41,7 +41,7 @@ services:
   judge0-workers:
     image: judge0/judge0:1.13.1
     command: ["./scripts/workers"]
-    cpus: 4.0
+    cpus: 2.5
     volumes:
       - ./judge0.conf:/judge0.conf:ro
     privileged: true
