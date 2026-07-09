@@ -26,6 +26,21 @@ type ContestParticipantWithUser = ContestParticipant & {
     user?: User;
 };
 
+const getLastSubmitTime = (value: Date | string | null | undefined) => {
+  if (!value) return Number.POSITIVE_INFINITY;
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+
+const compareContestRank = (
+  a: ContestParticipantWithUser,
+  b: ContestParticipantWithUser,
+) =>
+  (b.totalScore || 0) - (a.totalScore || 0) ||
+  getLastSubmitTime(a.lastSubmitAt) - getLastSubmitTime(b.lastSubmitAt) ||
+  (a.penalty || 0) - (b.penalty || 0);
+
 const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
   const now = new Date();
   const start = new Date(startAt);
@@ -55,7 +70,7 @@ export default function Page() {
                     throw new Error("Failed to fetch leaderboard");
                 }
                 const data: ContestParticipantWithUser[] = await response.json();
-                const sorted = data.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+                const sorted = [...data].sort(compareContestRank);
 
                 setRankings(sorted);
             } catch (error) {
