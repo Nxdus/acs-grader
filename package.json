@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "load:test": "k6 run tests/k6/acs-load-test.js",
+    "load:test:write": "k6 run -e ENABLE_RUN=true -e ENABLE_SUBMIT=true tests/k6/acs-load-test.js",
+    "load:judge0": "k6 run tests/k6/judge0-capacity-test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",

@@ -46,13 +46,15 @@ function normalizeTestCases(value: unknown) {
   return value
     .map((entry) => {
       if (!entry || typeof entry !== "object") return null;
-      const input = normalizeString((entry as { input?: unknown }).input);
-      const output = normalizeString((entry as { output?: unknown }).output);
+      const rawInput = (entry as { input?: unknown }).input;
+      const rawOutput = (entry as { output?: unknown }).output;
+      const input = typeof rawInput === "string" ? rawInput : "";
+      const output = typeof rawOutput === "string" ? rawOutput : "";
       const isSample =
         typeof (entry as { isSample?: unknown }).isSample === "boolean"
           ? (entry as { isSample?: boolean }).isSample
           : false;
-      if (!input || !output) return null;
+      if (!input.trim() || !output.trim()) return null;
       return { input, output, isSample };
     })
     .filter(

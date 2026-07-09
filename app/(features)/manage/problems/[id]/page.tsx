@@ -565,11 +565,11 @@ export default function ManageProblemEditorPage() {
 
     const normalizedTestCases = state.testCases
       .map((testCase) => ({
-        input: testCase.input.trim(),
-        output: testCase.output.trim(),
+        input: testCase.input,
+        output: testCase.output,
         isSample: testCase.isSample,
       }))
-      .filter((testCase) => testCase.input && testCase.output)
+      .filter((testCase) => testCase.input.trim() && testCase.output.trim())
 
     if (normalizedTestCases.length !== FIXED_TEST_CASE_COUNT) {
       setError(`Problem must contain exactly ${FIXED_TEST_CASE_COUNT} completed test cases.`)
