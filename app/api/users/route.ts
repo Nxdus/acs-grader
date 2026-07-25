@@ -9,6 +9,7 @@ const sortableFields = new Set([
   "email",
   "role",
   "level",
+  "score",
   "emailVerified",
 ]);
 
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
             email: true,
             role: true,
             level: true,
+            score: true,
             emailVerified: true,
             createdAt: true,
             updatedAt: true,
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
     const role = typeof body?.role === "string" ? body.role : "USER";
     const level = typeof body?.level === "string" ? body.level : "BEGINNER";
     const emailVerified = Boolean(body?.emailVerified);
+    const score = Number(body?.score ?? 0);
 
     if (!name || !email) {
       return NextResponse.json(
@@ -122,6 +125,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid level." }, { status: 400 });
     }
 
+    if (!Number.isFinite(score) || score < 0) {
+      return NextResponse.json(
+        { error: "Score must be a non-negative number." },
+        { status: 400 },
+      );
+    }
+
     const now = new Date();
 
     const user = await prisma.user.create({
@@ -131,6 +141,7 @@ export async function POST(request: Request) {
         email,
         role: role as Role,
         level: level as UserLevel,
+        score: Math.trunc(score),
         emailVerified,
         createdAt: now,
         updatedAt: now,
@@ -141,6 +152,7 @@ export async function POST(request: Request) {
         email: true,
         role: true,
         level: true,
+        score: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
