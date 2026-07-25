@@ -230,7 +230,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   let submissionContext:
     | { type: "problem" }
-    | { type: "contest"; contestId: number } = {
+    | { type: "contest"; contestId: number; maxScore: number | null } = {
     type: "problem",
   };
 
@@ -281,6 +281,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     submissionContext = {
       type: "contest",
       contestId: contest.id,
+      maxScore: contestProblem.maxScore,
     };
   }
 
@@ -485,6 +486,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     submissionContext.type === "contest"
       ? computeScore(
           submissionResults.filter((result) => result.passed).length,
+          submissionContext.maxScore,
         )
       : 0;
 
