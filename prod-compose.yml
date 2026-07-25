@@ -80,9 +80,9 @@ services:
     # networks:
     #   - dokploy-network
 
-# volumes:
-#   judge0-data:
-#   app-data:
+volumes:
+  judge0-data:
+  app-data:
 
 # networks:
 #   dokploy-network:
