@@ -9,8 +9,8 @@ services:
     image: ghcr.io/nxdus/acs-grader:latest
     pull_policy: always
     env_file: .env
-    ports:
-      - "3333:3000"
+    # ports:
+    #   - "3333:3000"
     depends_on:
       - app-postgres
       - judge0-server
