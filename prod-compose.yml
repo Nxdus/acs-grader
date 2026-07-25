@@ -10,7 +10,7 @@ services:
     pull_policy: always
     env_file: .env
     ports:
-      - "3000:3000"
+      - "3333:3000"
     depends_on:
       - app-postgres
       - judge0-server
