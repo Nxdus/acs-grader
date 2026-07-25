@@ -31,8 +31,8 @@ services:
       - app-data:/var/lib/postgresql/data/
     <<: *default-logging
     restart: always
-    # networks:
-    #   - dokploy-network
+    networks:
+      - dokploy-network
 
   judge0-server:
     image: judge0/judge0:1.13.1
