@@ -434,7 +434,24 @@ export default function TextEditor({
                 return;
             }
 
-            toast.success("Submitted successfully.");
+            if (data?.status === "WRONG_ANSWER") {
+                const wrongAnswerCount =
+                    typeof data.wrongAnswerCount === "number"
+                        ? data.wrongAnswerCount
+                        : null;
+                const totalTestCaseCount =
+                    typeof data.totalTestCaseCount === "number"
+                        ? data.totalTestCaseCount
+                        : null;
+                const resultSummary =
+                    wrongAnswerCount !== null && totalTestCaseCount !== null
+                        ? `: ${wrongAnswerCount} of ${totalTestCaseCount} test cases failed.`
+                        : ".";
+
+                toast.error(`Wrong Answer${resultSummary}`);
+            } else {
+                toast.success("Submitted successfully.");
+            }
             void loadSubmissionStatus(session.user.id);
         } catch (error) {
             console.error(error);

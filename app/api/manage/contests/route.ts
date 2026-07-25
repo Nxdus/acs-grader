@@ -1,4 +1,5 @@
 import { ContestScoringType, Prisma, UserLevel } from "@/generated/prisma/client"
+import { getContestStatus } from "@/lib/contest/schedule"
 import prisma from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
@@ -20,10 +21,10 @@ function parseDate(value: unknown) {
   return date
 }
 
-function getContestStatus(startAt: Date, endAt: Date) {
-  const now = new Date()
-  if (startAt > now) return "Upcoming"
-  if (endAt < now) return "Ended"
+function getManageContestStatus(startAt: Date, endAt: Date, now: Date) {
+  const status = getContestStatus(startAt, endAt, now)
+  if (status === "upcoming") return "Upcoming"
+  if (status === "ended") return "Ended"
   return "Active"
 }
 
@@ -64,10 +65,10 @@ export async function GET(request: Request) {
         ? { level: level as UserLevel }
         : {}),
       ...(status === "Upcoming" ? { startAt: { gt: now } } : {}),
-      ...(status === "Ended" ? { endAt: { lt: now } } : {}),
+      ...(status === "Ended" ? { endAt: { lte: now } } : {}),
       ...(status === "Active"
         ? {
-            AND: [{ startAt: { lte: now } }, { endAt: { gte: now } }],
+            AND: [{ startAt: { lte: now } }, { endAt: { gt: now } }],
           }
         : {}),
     }
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
       updatedAt: contest.updatedAt,
       problemCount: contest._count.problems,
       participantCount: contest._count.participants,
-      status: getContestStatus(contest.startAt, contest.endAt),
+      status: getManageContestStatus(contest.startAt, contest.endAt, now),
     }))
 
     return NextResponse.json({

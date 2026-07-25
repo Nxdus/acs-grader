@@ -4,9 +4,10 @@ const getLastSubmitTime = (date: Date | null) =>
   date ? date.getTime() : Number.POSITIVE_INFINITY;
 
 export async function finishExpiredContests() {
+  const serverNow = new Date();
   const contests = await prisma.contest.findMany({
     where: {
-      endAt: { lt: new Date() },
+      endAt: { lte: serverNow },
       participants: {
         some: {
           rank: null,

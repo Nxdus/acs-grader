@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { computeScore } from "@/lib/scoring";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getContestStatus } from "@/lib/contest/schedule";
 
 type RouteContext = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -247,15 +248,15 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
 
-    const now = new Date();
-    if (contest.startAt > now) {
+    const contestStatus = getContestStatus(contest.startAt, contest.endAt);
+    if (contestStatus === "upcoming") {
       return NextResponse.json(
         { error: "Contest has not started yet." },
         { status: 403 },
       );
     }
 
-    if (contest.endAt < now) {
+    if (contestStatus === "ended") {
       return NextResponse.json(
         { error: "Contest has ended." },
         { status: 403 },
@@ -458,6 +459,9 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const statuses = submissionResults.map((result) => result.judgeStatus);
   const finalStatus = pickFinalStatus(statuses);
+  const wrongAnswerCount = submissionResults.filter(
+    (result) => result.judgeStatus === "WRONG_ANSWER",
+  ).length;
 
   const executionTime = submissionResults.reduce<number | null>(
     (maxValue, current) => {
@@ -601,5 +605,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         ? submissionContext.contestId
         : undefined,
     score: computedScore,
+    wrongAnswerCount,
+    totalTestCaseCount: submissionResults.length,
   });
 }
