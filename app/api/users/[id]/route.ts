@@ -12,6 +12,24 @@ function normalizeEmail(email: unknown) {
   return trimmed ? trimmed : undefined;
 }
 
+function parseScore(score: unknown) {
+  if (score === undefined) {
+    return { ok: true as const, shouldUpdate: false as const };
+  }
+
+  const numericScore = Number(score ?? 0);
+
+  if (!Number.isFinite(numericScore) || numericScore < 0) {
+    return { ok: false as const, error: "Score must be a non-negative number." };
+  }
+
+  return {
+    ok: true as const,
+    shouldUpdate: true as const,
+    value: Math.trunc(numericScore),
+  };
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -23,6 +41,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         email: true,
         role: true,
         level: true,
+        score: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -50,6 +69,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const email = normalizeEmail(body?.email);
     const role = typeof body?.role === "string" ? body.role : undefined;
     const level = typeof body?.level === "string" ? body.level : undefined;
+    const score = parseScore(body?.score);
     const emailVerified =
       typeof body?.emailVerified === "boolean" ? body.emailVerified : undefined;
 
@@ -61,6 +81,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Invalid level." }, { status: 400 });
     }
 
+    if (!score.ok) {
+      return NextResponse.json({ error: score.error }, { status: 400 });
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -68,6 +92,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         ...(email ? { email } : {}),
         ...(role ? { role: role as Role } : {}),
         ...(level ? { level: level as UserLevel } : {}),
+        ...(score.shouldUpdate ? { score: score.value } : {}),
         ...(emailVerified === undefined ? {} : { emailVerified }),
         updatedAt: new Date(),
       },
@@ -77,6 +102,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         email: true,
         role: true,
         level: true,
+        score: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,

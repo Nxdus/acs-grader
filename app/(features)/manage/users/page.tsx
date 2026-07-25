@@ -73,13 +73,14 @@ type UserRecord = {
   email: string
   role: UserRole
   level: UserLevel
+  score: number
   emailVerified: boolean
   createdAt: string
   updatedAt: string
   image?: string | null
 }
 
-type SortKey = "name" | "email" | "role" | "level" | "emailVerified" | "createdAt" | "updatedAt"
+type SortKey = "name" | "email" | "role" | "level" | "score" | "emailVerified" | "createdAt" | "updatedAt"
 
 type UserResponse = {
   items: UserRecord[]
@@ -157,6 +158,7 @@ export default function ManageUsersPage() {
     email: "",
     role: roleOptions[2] as UserRole,
     level: levelOptions[0] as UserLevel,
+    score: "0",
     status: statusOptions[1] as UserStatus,
   })
   const [formError, setFormError] = useState<string | null>(null)
@@ -274,6 +276,7 @@ export default function ManageUsersPage() {
       email: "",
       role: roleOptions[2],
       level: levelOptions[0],
+      score: "0",
       status: statusOptions[1],
     })
     setFormError(null)
@@ -287,6 +290,7 @@ export default function ManageUsersPage() {
       email: user.email,
       role: user.role,
       level: user.level,
+      score: String(user.score ?? 0),
       status: statusFromUser(user),
     })
     setFormError(null)
@@ -299,6 +303,12 @@ export default function ManageUsersPage() {
       return
     }
 
+    const score = Number(formState.score)
+    if (!Number.isFinite(score) || score < 0) {
+      setFormError("Score must be a non-negative number.")
+      return
+    }
+
     setIsSaving(true)
     setFormError(null)
 
@@ -308,6 +318,7 @@ export default function ManageUsersPage() {
         email: formState.email.trim(),
         role: formState.role,
         level: formState.level,
+        score: Math.trunc(score),
         emailVerified: statusToEmailVerified(formState.status),
       }
 
@@ -599,6 +610,15 @@ export default function ManageUsersPage() {
                         <SortIcon active={sortKey === "level"} direction={sortDirection} />
                       </button>
                     </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="inline-flex items-center gap-2 font-semibold"
+                        onClick={() => toggleSort("score")}
+                      >
+                        Score
+                        <SortIcon active={sortKey === "score"} direction={sortDirection} />
+                      </button>
+                    </TableHead>
                     <TableHead>
                       <button
                         className="inline-flex items-center gap-2 font-semibold"
@@ -632,7 +652,7 @@ export default function ManageUsersPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         <div className="flex justify-center items-center w-full">
                           <Spinner/>
                         </div>
@@ -640,13 +660,13 @@ export default function ManageUsersPage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         {error}
                       </TableCell>
                     </TableRow>
                   ) : users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                         No users found. Adjust filters or create a new user.
                       </TableCell>
                     </TableRow>
@@ -674,6 +694,7 @@ export default function ManageUsersPage() {
                         <TableCell>
                           <Badge variant="outline">{user.level === "BEGINNER" ? "Beginner" : "Advanced"}</Badge>
                         </TableCell>
+                        <TableCell className="text-right font-medium">{user.score ?? 0}</TableCell>
                         <TableCell>
                           <Badge className={statusFromUser(user) === "Verified" ? 'border-green-400 text-green-500' : 'border-red-400 text-red-500'} variant="outline">
                             {statusFromUser(user)}
@@ -763,7 +784,7 @@ export default function ManageUsersPage() {
             <DialogTitle>{editingUser ? "Edit user" : "Create user"}</DialogTitle>
             <DialogDescription>
               {editingUser
-                ? "Update role or verification status for this user."
+                ? "Update role, score, or verification status for this user."
                 : "Create a new user and assign access level."}
             </DialogDescription>
           </DialogHeader>
@@ -856,6 +877,22 @@ export default function ManageUsersPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium" htmlFor="user-score">
+                Score
+              </label>
+              <Input
+                id="user-score"
+                min={0}
+                step={1}
+                type="number"
+                value={formState.score}
+                onChange={(event) =>
+                  setFormState((prev) => ({ ...prev, score: event.target.value }))
+                }
+                placeholder="0"
+              />
+            </div>
             {formError ? (
               <p className="text-sm text-destructive">{formError}</p>
             ) : null}
@@ -864,7 +901,7 @@ export default function ManageUsersPage() {
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || !formState.name.trim() || !formState.email.trim()}>
+            <Button onClick={handleSave} disabled={isSaving || !formState.name.trim() || !formState.email.trim() || !formState.score.trim()}>
               {isSaving ? "Saving..." : editingUser ? "Save changes" : "Create user"}
             </Button>
           </DialogFooter>
