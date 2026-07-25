@@ -13,9 +13,14 @@ import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+  getScheduleRefreshDelay,
+  type ContestStatus,
+} from "@/lib/contest/schedule";
 
 type ContestWithStatus = Contest & {
-  status: "active" | "upcoming" | "ended";
+  status: ContestStatus;
+  serverTime: string;
   participants?: Array<ContestParticipant>;
 };
 
@@ -24,16 +29,6 @@ enum Role {
   STAFF = "STAFF",
   ADMIN = "ADMIN",
 }
-
-const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
-  const now = new Date();
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-
-  if (now < start) return "upcoming";
-  if (now > end) return "ended";
-  return "active";
-};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -73,6 +68,7 @@ const formatDate = (date: Date | string) => {
 export default function Page() {
   const [contests, setContests] = useState<ContestWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
 
   const { data: session } = useSession()
   const userLevel = session?.user?.level ?? "BEGINNER"
@@ -82,15 +78,13 @@ export default function Page() {
   useEffect(() => {
     const fetchContests = async () => {
       try {
-        const response = await fetch(`/api/contest?level=${userLevel}`);
-        const data = await response.json();
+        const response = await fetch(`/api/contest?level=${userLevel}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Failed to fetch contests");
 
-        const contestsWithStatus = data.map((contest: Contest) => ({
-          ...contest,
-          status: getContestStatus(contest.startAt, contest.endAt),
-        }));
-
-        setContests(contestsWithStatus);
+        const data: unknown = await response.json();
+        setContests(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to fetch contests:", error);
         setContests([]);
@@ -100,7 +94,18 @@ export default function Page() {
     };
 
     fetchContests();
-  }, [userLevel]);
+  }, [scheduleRefreshKey, userLevel]);
+
+  useEffect(() => {
+    const delay = getScheduleRefreshDelay(contests);
+    if (delay === null) return;
+
+    const timeout = window.setTimeout(() => {
+      setScheduleRefreshKey((key) => key + 1);
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [contests]);
 
   async function handleJoin(contestId: number) {
     if (!session?.user?.id) {

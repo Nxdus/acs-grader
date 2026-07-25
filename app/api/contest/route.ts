@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { Prisma, UserLevel } from "@/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { finishExpiredContests } from "@/lib/contest/finish";
+import { getContestSchedule } from "@/lib/contest/schedule";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(contests);
+    const serverNow = new Date();
+    const contestsWithSchedule = contests.map((contest) => ({
+      ...contest,
+      ...getContestSchedule(contest.startAt, contest.endAt, serverNow),
+    }));
+
+    return NextResponse.json(contestsWithSchedule, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     console.error("Failed to fetch contests:", error);
     return NextResponse.json(

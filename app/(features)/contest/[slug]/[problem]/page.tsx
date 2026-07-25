@@ -13,6 +13,9 @@ import { DEFAULT_CONTEST_PROBLEM_MAX_SCORE } from "@/lib/problem-config"
 import prisma from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Contest } from "@/generated/prisma/client"
+import { getContestStatus } from "@/lib/contest/schedule"
+
+export const dynamic = "force-dynamic"
 
 type ProblemResponse = {
   slug: string
@@ -127,16 +130,6 @@ const getTask = async (slug: string, problem: string): Promise<TaskResponse | nu
   }
 }
 
-const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
-  const now = new Date();
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-
-  if (now < start) return "upcoming";
-  if (now > end) return "ended";
-  return "active";
-};
-
 export default async function Page({
   params,
 }: {
@@ -164,7 +157,7 @@ export default async function Page({
   const contestStatus = getContestStatus(contestObj?.startAt, contestObj?.endAt);
 
   if (contestStatus !== "active") {
-    redirect('/');
+    redirect(`/contest/${slug}`);
   }
 
   return (

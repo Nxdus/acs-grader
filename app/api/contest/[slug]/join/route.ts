@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getContestStatus } from "@/lib/contest/schedule";
 
 export async function POST(
   _: Request,
@@ -18,6 +19,33 @@ export async function POST(
 
     const contestId = Number(slug);
     const userId = session.user.id;
+
+    if (!Number.isInteger(contestId) || contestId <= 0) {
+      return NextResponse.json({ error: "Contest not found" }, { status: 404 });
+    }
+
+    const contest = await prisma.contest.findUnique({
+      where: { id: contestId },
+      select: { startAt: true, endAt: true },
+    });
+
+    if (!contest) {
+      return NextResponse.json({ error: "Contest not found" }, { status: 404 });
+    }
+
+    const contestStatus = getContestStatus(contest.startAt, contest.endAt);
+    if (contestStatus === "upcoming") {
+      return NextResponse.json(
+        { error: "Contest has not started yet." },
+        { status: 403 },
+      );
+    }
+    if (contestStatus === "ended") {
+      return NextResponse.json(
+        { error: "Contest has ended." },
+        { status: 403 },
+      );
+    }
 
     const alreadyJoined = await prisma.contestParticipant.findUnique({
       where: {

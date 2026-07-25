@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { finishExpiredContests } from "@/lib/contest/finish";
+import { getContestSchedule } from "@/lib/contest/schedule";
 import { getProblemStats } from "@/lib/problem-stats";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -85,14 +86,24 @@ export async function GET(
         },
       })),
     };
+    const contestWithSchedule = {
+      ...contestWithStats,
+      ...getContestSchedule(
+        contestWithStats.startAt,
+        contestWithStats.endAt,
+        new Date(),
+      ),
+    };
 
     if (!userId) {
-      return NextResponse.json(contestWithStats);
+      return NextResponse.json(contestWithSchedule, {
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
     const contestWithProgress = {
-      ...contestWithStats,
-      problems: contestWithStats.problems.map((contestProblem) => {
+      ...contestWithSchedule,
+      problems: contestWithSchedule.problems.map((contestProblem) => {
         const submissions = contestProblem.problem.submissions ?? [];
         return {
           ...contestProblem,
@@ -105,7 +116,9 @@ export async function GET(
       }),
     };
 
-    return NextResponse.json(contestWithProgress);
+    return NextResponse.json(contestWithProgress, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     console.error("Failed to fetch contest:", error);
     return NextResponse.json(

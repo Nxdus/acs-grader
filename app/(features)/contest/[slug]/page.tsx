@@ -11,6 +11,10 @@ import { useSession } from "@/lib/auth-client";
 import { ChessQueen, ChessRook, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import {
+    getScheduleRefreshDelay,
+    type ContestStatus,
+} from "@/lib/contest/schedule";
 
 const LEADERBOARD_SIZE = 10;
 
@@ -19,6 +23,8 @@ type ContestProblemWithProblem = ContestProblem & {
 };
 
 type ContestWithParticipant = Contest & {
+    status: ContestStatus;
+    serverTime: string;
     participants?: ContestParticipantWithUser[];
 };
 
@@ -41,16 +47,6 @@ const compareContestRank = (
   getLastSubmitTime(a.lastSubmitAt) - getLastSubmitTime(b.lastSubmitAt) ||
   (a.penalty || 0) - (b.penalty || 0);
 
-const getContestStatus = (startAt: Date, endAt: Date): "active" | "upcoming" | "ended" => {
-  const now = new Date();
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-
-  if (now < start) return "upcoming";
-  if (now > end) return "ended";
-  return "active";
-};
-
 export default function Page() {
     const { slug } = useParams();
     const { data: session } = useSession();
@@ -61,6 +57,7 @@ export default function Page() {
     const [rankings, setRankings] = useState<ContestParticipantWithUser[]>([]);
     const [userRankingData, setUserRankingData] = useState<ContestParticipantWithUser | null>(null);
     const [userRank, setUserRank] = useState<number>(NaN);
+    const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
 
     useEffect(() => {
         const fetchRankings = async () => {
@@ -79,7 +76,7 @@ export default function Page() {
         };
 
         fetchRankings();
-    }, [slug]);
+    }, [scheduleRefreshKey, slug]);
 
     useEffect(() => {
         if (!session?.user) return;
@@ -98,7 +95,7 @@ export default function Page() {
                     params.set("userId", session.user.id);
                 }
                 const url = params.size ? `/api/contest/${slug}?${params.toString()}` : `/api/contest/${slug}`;
-                const response = await fetch(url);
+                const response = await fetch(url, { cache: "no-store" });
                 if (!response.ok) throw new Error("Failed to fetch contest");
 
                 const data = await response.json();
@@ -114,10 +111,20 @@ export default function Page() {
         };
 
         if (slug) fetchContest();
-    }, [slug, session?.user?.id]);
+    }, [scheduleRefreshKey, slug, session?.user?.id]);
 
-    if (!contest) return;
-    const contestStatus = getContestStatus(contest.startAt, contest.endAt);
+    useEffect(() => {
+        if (!contest) return;
+
+        const delay = getScheduleRefreshDelay([contest]);
+        if (delay === null) return;
+
+        const timeout = window.setTimeout(() => {
+            setScheduleRefreshKey((key) => key + 1);
+        }, delay);
+
+        return () => window.clearTimeout(timeout);
+    }, [contest]);
 
     if (loading) {
         return (
@@ -126,6 +133,9 @@ export default function Page() {
             </main>
         );
     }
+
+    if (!contest) return null;
+    const contestStatus = contest.status;
 
     return (
         <main className="w-full h-full flex flex-col rounded-xl bg-background">
@@ -141,7 +151,12 @@ export default function Page() {
                         {contest?.description}
                     </p>
                     {contestStatus !== "active" &&
-                        <Badge className="mt-2" variant={"destructive"}>Contest Ended</Badge>
+                        <Badge
+                            className="mt-2"
+                            variant={contestStatus === "ended" ? "destructive" : "secondary"}
+                        >
+                            {contestStatus === "ended" ? "Contest Ended" : "Contest Upcoming"}
+                        </Badge>
                     }
                 </div>
                 <div className="flex flex-1 gap-6">
