@@ -165,6 +165,9 @@ export default function ManageUsersPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<UserRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [letsGoEnabled, setLetsGoEnabled] = useState<boolean | null>(null)
+  const [letsGoError, setLetsGoError] = useState<string | null>(null)
+  const [isUpdatingLetsGo, setIsUpdatingLetsGo] = useState(false)
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -225,6 +228,32 @@ export default function ManageUsersPage() {
     fetchUsers(page, controller.signal)
     return () => controller.abort()
   }, [fetchUsers, page])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    void fetch("/api/lets-go", {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load Let's Go status.")
+        }
+
+        const payload = (await response.json()) as { enabled?: boolean }
+        setLetsGoEnabled(payload.enabled === true)
+      })
+      .catch((err: unknown) => {
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          setLetsGoError(
+            err instanceof Error ? err.message : "Failed to load Let's Go status."
+          )
+        }
+      })
+
+    return () => controller.abort()
+  }, [])
 
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1
   const showingTo = total === 0 ? 0 : Math.min(page * pageSize, total)
@@ -351,6 +380,37 @@ export default function ManageUsersPage() {
     }
   }
 
+  async function handleToggleLetsGo() {
+    if (letsGoEnabled === null) {
+      return
+    }
+
+    setIsUpdatingLetsGo(true)
+    setLetsGoError(null)
+
+    try {
+      const response = await fetch("/api/lets-go", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !letsGoEnabled }),
+      })
+
+      if (!response.ok) {
+        const message = await response.json().catch(() => null)
+        throw new Error(message?.error ?? "Failed to update Let's Go access.")
+      }
+
+      const payload = (await response.json()) as { enabled: boolean }
+      setLetsGoEnabled(payload.enabled)
+    } catch (err) {
+      setLetsGoError(
+        err instanceof Error ? err.message : "Failed to update Let's Go access."
+      )
+    } finally {
+      setIsUpdatingLetsGo(false)
+    }
+  }
+
   function handleResetFilters() {
     setSearch("")
     setRoleFilter("all")
@@ -387,6 +447,45 @@ export default function ManageUsersPage() {
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold">Let&apos;s Go access</h2>
+                {letsGoEnabled !== null ? (
+                  <Badge
+                    className={
+                      letsGoEnabled
+                        ? "border-green-400 text-green-500"
+                        : "border-red-400 text-red-500"
+                    }
+                    variant="outline"
+                  >
+                    {letsGoEnabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Control the Let&apos;s Go button and access to the application for everyone.
+              </p>
+              {letsGoError ? (
+                <p className="text-sm text-destructive">{letsGoError}</p>
+              ) : null}
+            </div>
+            <Button
+              variant={letsGoEnabled ? "destructive" : "default"}
+              onClick={handleToggleLetsGo}
+              disabled={letsGoEnabled === null || isUpdatingLetsGo}
+            >
+              {isUpdatingLetsGo
+                ? "Updating..."
+                : letsGoEnabled
+                  ? "Disable Let's Go"
+                  : "Enable Let's Go"}
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
