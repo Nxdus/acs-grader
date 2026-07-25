@@ -312,6 +312,15 @@ export default function ManageContestEditorPage() {
       freezeAt: state.freezeAt ? new Date(state.freezeAt).toISOString() : null,
       isPublic: state.isPublic,
       scoringType: state.scoringType,
+      ...(contestId
+        ? {
+          problems: contestProblems.map((problem) => ({
+            problemId: problem.problemId,
+            order: problem.order,
+            maxScore: problem.maxScore,
+          })),
+        }
+        : {}),
     }
 
     try {
@@ -333,6 +342,10 @@ export default function ManageContestEditorPage() {
       if (!state.id) {
         router.replace(`/manage/contests/${saved.id}`)
         return
+      }
+
+      if (contestId) {
+        await loadContestProblems(contestId)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save contest.")
@@ -449,31 +462,6 @@ export default function ManageContestEditorPage() {
       setProblemsError(err instanceof Error ? err.message : "Failed to add problem.")
     } finally {
       setIsAddingProblem(false)
-    }
-  }
-
-  async function handleUpdateProblem(problemId: number) {
-    if (!contestId) return
-    const row = contestProblems.find((problem) => problem.problemId === problemId)
-    if (!row) return
-    try {
-      const response = await fetch(`/api/manage/contests/${contestId}/problems/${problemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order: row.order,
-          maxScore: row.maxScore,
-        }),
-      })
-
-      if (!response.ok) {
-        const message = await response.json().catch(() => null)
-        throw new Error(message?.error ?? "Failed to update problem.")
-      }
-
-      await loadContestProblems(contestId)
-    } catch (err) {
-      setProblemsError(err instanceof Error ? err.message : "Failed to update problem.")
     }
   }
 
@@ -835,9 +823,10 @@ export default function ManageContestEditorPage() {
                   <Input
                     id="problem-score"
                     type="number"
+                    min={0}
                     value={newProblemScore}
                     onChange={(event) => setNewProblemScore(event.target.value)}
-                    placeholder="Optional"
+                    placeholder="Default 100"
                   />
                 </div>
                 <Button
@@ -912,6 +901,7 @@ export default function ManageContestEditorPage() {
                         <TableCell className="max-w-35">
                           <Input
                             type="number"
+                            min={0}
                             value={problem.maxScore === null ? "" : String(problem.maxScore)}
                             onChange={(event) => {
                               const value = event.target.value
@@ -939,8 +929,8 @@ export default function ManageContestEditorPage() {
                             <Button asChild variant="outline" size="sm">
                               <Link href={`/manage/problems/${problem.problemId}`}>Edit</Link>
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleUpdateProblem(problem.problemId)}>
-                              Save
+                            <Button asChild variant="outline" size="sm">
+                              <Link href={`/manage/problems/${problem.problemId}/submissions`}>Submissions</Link>
                             </Button>
                             <Button
                               variant="destructive"

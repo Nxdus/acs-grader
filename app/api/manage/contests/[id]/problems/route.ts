@@ -10,6 +10,21 @@ function normalizeString(value: unknown) {
   return value.trim()
 }
 
+function parseMaxScore(value: unknown) {
+  if (value === undefined) return { ok: true as const, value: null }
+  if (value === null) return { ok: true as const, value: null }
+  if (typeof value === "string" && value.trim() === "") {
+    return { ok: true as const, value: null }
+  }
+
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return { ok: false as const }
+  }
+
+  return { ok: true as const, value: Math.trunc(numeric) }
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
@@ -62,8 +77,12 @@ export async function POST(request: Request, { params }: RouteParams) {
     const body = await request.json()
     const problemIdValue = Number(body?.problemId)
     const problemSlug = normalizeString(body?.problemSlug)
-    const maxScore = body?.maxScore !== undefined ? Number(body?.maxScore) : undefined
+    const maxScore = parseMaxScore(body?.maxScore)
     const orderValue = body?.order !== undefined ? Number(body?.order) : undefined
+
+    if (!maxScore.ok) {
+      return NextResponse.json({ error: "Max score must be a non-negative number." }, { status: 400 })
+    }
 
     let problemId = Number.isFinite(problemIdValue) ? problemIdValue : null
     if (!problemId && problemSlug) {
@@ -121,7 +140,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         contestId,
         problemId,
         order: finalOrder,
-        maxScore: Number.isFinite(maxScore) ? Math.trunc(maxScore as number) : null,
+        maxScore: maxScore.value,
       },
       include: {
         problem: {

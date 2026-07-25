@@ -1,5 +1,6 @@
-import { ContestScoringType, UserLevel } from "@/generated/prisma/client"
+import { ContestScoringType, Prisma, UserLevel } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
+import { computeScore } from "@/lib/scoring"
 import { NextResponse } from "next/server"
 
 type RouteParams = {
@@ -20,6 +21,113 @@ function parseDate(value: unknown) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
   return date
+}
+
+function parseContestProblems(value: unknown) {
+  if (value === undefined) return { ok: true as const, problems: null }
+  if (!Array.isArray(value)) return { ok: false as const, error: "Contest problems must be an array." }
+
+  const problems: Array<{ problemId: number; order: number; maxScore: number | null }> = []
+
+  for (const entry of value) {
+    const problemId = Number((entry as { problemId?: unknown })?.problemId)
+    const order = Number((entry as { order?: unknown })?.order)
+    const maxScoreValue = (entry as { maxScore?: unknown })?.maxScore
+
+    if (!Number.isFinite(problemId) || !Number.isFinite(order)) {
+      return { ok: false as const, error: "Problem id and order must be valid numbers." }
+    }
+
+    let maxScore: number | null = null
+    const isEmptyMaxScore =
+      maxScoreValue === null ||
+      maxScoreValue === undefined ||
+      (typeof maxScoreValue === "string" && maxScoreValue.trim() === "")
+
+    if (!isEmptyMaxScore) {
+      const numericMaxScore = Number(maxScoreValue)
+      if (!Number.isFinite(numericMaxScore) || numericMaxScore < 0) {
+        return { ok: false as const, error: "Max score must be a non-negative number." }
+      }
+      maxScore = Math.trunc(numericMaxScore)
+    }
+
+    problems.push({
+      problemId: Math.trunc(problemId),
+      order: Math.trunc(order),
+      maxScore,
+    })
+  }
+
+  return { ok: true as const, problems }
+}
+
+async function recalculateContestProblemScores(
+  tx: Prisma.TransactionClient,
+  contestId: number,
+  problems: Array<{ problemId: number; maxScore: number | null }>,
+) {
+  const affectedUserIds = new Set<string>()
+
+  for (const problem of problems) {
+    const submissions = await tx.submission.findMany({
+      where: {
+        contestId,
+        problemId: problem.problemId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        results: {
+          select: {
+            passed: true,
+          },
+        },
+      },
+    })
+
+    await Promise.all(
+      submissions.map((submission) => {
+        affectedUserIds.add(submission.userId)
+        return tx.submission.update({
+          where: { id: submission.id },
+          data: {
+            score: computeScore(
+              submission.results.filter((result) => result.passed).length,
+              problem.maxScore,
+            ),
+          },
+        })
+      }),
+    )
+  }
+
+  await Promise.all(
+    Array.from(affectedUserIds).map(async (userId) => {
+      const bestByProblem = await tx.submission.groupBy({
+        by: ["problemId"],
+        where: {
+          contestId,
+          userId,
+        },
+        _max: {
+          score: true,
+        },
+      })
+
+      const totalScore = bestByProblem.reduce((sum, item) => sum + (item._max.score ?? 0), 0)
+
+      await tx.contestParticipant.updateMany({
+        where: {
+          contestId,
+          userId,
+        },
+        data: {
+          totalScore,
+        },
+      })
+    }),
+  )
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
@@ -91,12 +199,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json()
+    const hasDescription = Object.prototype.hasOwnProperty.call(body ?? {}, "description")
     const title = normalizeString(body?.title)
     const slug = normalizeSlug(body?.slug)
     const description = typeof body?.description === "string" ? body.description : null
     const isPublic = typeof body?.isPublic === "boolean" ? body.isPublic : undefined
     const scoringType = body?.scoringType
     const level = body?.level
+    const contestProblems = parseContestProblems(body?.problems)
+
+    if (!contestProblems.ok) {
+      return NextResponse.json({ error: contestProblems.error }, { status: 400 })
+    }
 
     if (scoringType && scoringType !== ContestScoringType.SCORE) {
       return NextResponse.json({ error: "Invalid scoring type." }, { status: 400 })
@@ -143,31 +257,55 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       )
     }
 
-    const updated = await prisma.contest.update({
-      where: { id: contestId },
-      data: {
-        ...(title ? { title } : {}),
-        ...(slug ? { slug } : {}),
-        ...(level ? { level: level as UserLevel } : {}),
-        description,
-        ...(startAt ? { startAt } : {}),
-        ...(endAt ? { endAt } : {}),
-        ...(hasFreezeAt ? { freezeAt: body?.freezeAt === null ? null : freezeAt } : {}),
-        ...(isPublic === undefined ? {} : { isPublic }),
-        ...(scoringType ? { scoringType: scoringType as ContestScoringType } : {}),
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        level: true,
-        startAt: true,
-        endAt: true,
-        isPublic: true,
-        scoringType: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const contest = await tx.contest.update({
+        where: { id: contestId },
+        data: {
+          ...(title ? { title } : {}),
+          ...(slug ? { slug } : {}),
+          ...(level ? { level: level as UserLevel } : {}),
+          ...(hasDescription ? { description } : {}),
+          ...(startAt ? { startAt } : {}),
+          ...(endAt ? { endAt } : {}),
+          ...(hasFreezeAt ? { freezeAt: body?.freezeAt === null ? null : freezeAt } : {}),
+          ...(isPublic === undefined ? {} : { isPublic }),
+          ...(scoringType ? { scoringType: scoringType as ContestScoringType } : {}),
+        },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          level: true,
+          startAt: true,
+          endAt: true,
+          isPublic: true,
+          scoringType: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+
+      if (contestProblems.problems) {
+        await Promise.all(
+          contestProblems.problems.map((problem) =>
+            tx.contestProblem.update({
+              where: {
+                contestId_problemId: {
+                  contestId,
+                  problemId: problem.problemId,
+                },
+              },
+              data: {
+                order: problem.order,
+                maxScore: problem.maxScore,
+              },
+            }),
+          ),
+        )
+        await recalculateContestProblemScores(tx, contestId, contestProblems.problems)
+      }
+
+      return contest
     })
 
     return NextResponse.json(updated)

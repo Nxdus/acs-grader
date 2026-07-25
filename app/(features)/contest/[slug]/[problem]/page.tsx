@@ -9,6 +9,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { formatMemoryLimitFromMb } from "@/lib/format-memory"
+import { DEFAULT_CONTEST_PROBLEM_MAX_SCORE } from "@/lib/problem-config"
 import prisma from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Contest } from "@/generated/prisma/client"
@@ -111,7 +112,7 @@ const getTask = async (slug: string, problem: string): Promise<TaskResponse | nu
     contestId: contestProblem.contestId,
     problemId: contestProblem.problemId,
     order: contestProblem.order,
-    maxScore: contestProblem.maxScore ?? 0,
+    maxScore: contestProblem.maxScore ?? DEFAULT_CONTEST_PROBLEM_MAX_SCORE,
     problem: {
       slug: contestProblem.problem.slug,
       title: contestProblem.problem.title,
